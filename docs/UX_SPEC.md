@@ -1,65 +1,137 @@
-# **Vexel: UX and Design Spec**
-
-### **Phase 2: Global Architecture & Planning**
-
-Thank you for the clear direction. Balancing a modern, breathable "consumer-enterprise" aesthetic with complex financial data is the sweet spot for a platform like Vexel. Given the Principal-focused requirements, we will lean heavily into generous whitespace, tabular typography for numbers, and native-feeling mobile interactions.
-
-Here is the Global Design Architecture that will serve as the foundation for our Component Tree.
-
-#### **1\. Global Design System (The "Lego Bricks")**
-
-* **Core UI Library:** React \+ Tailwind CSS \+ **Shadcn/UI** (built on Radix UI primitives for supreme accessibility and composability).  
-* **Typography:** \* *Primary Font:* Inter or Geist Sans.  
-  * *Financial Figures:* We will heavily utilize the tabular-nums Tailwind utility for all financial grids and Net Worth calculations to ensure decimal alignment and prevent visual "jumping" when values update.  
-* **Color Tokens & Aesthetic (Breathable & Modern):**  
-  * *Backgrounds:* Soft off-whites (bg-slate-50 or bg-zinc-50) to reduce eye strain, with pure white (bg-white) reserved strictly for elevated components (Cards, Modals) to create depth.  
-  * *Borders:* Very subtle borders (border-border / border-slate-200).  
-  * *Primary Action:* A sophisticated, trustworthy brand color (e.g., bg-slate-900 or a deep navy).  
-* **Governance Indicators (Subtle):**  
-  * We will use minimalist semantic status dots (e.g., \<Badge variant="outline"\>\<div className="w-2 h-2 rounded-full bg-amber-500" /\> Review\</Badge\>) rather than full-row highlighting.  
-* **Mobile Web Paradigm (Native Feel):**  
-  * Instead of standard responsive stacking, mobile (\< md) will utilize iOS-style paradigms: Bottom Tab Navigation replacing sidebars, and Sheet (Slide-over) components pulling up from the bottom for detail views and forms, creating a seamless, app-like read-only experience for Principals.
+# **Ceeq: UX and Design Spec**
 
 ---
 
-#### **2\. Scope Definition (The Screen & Flow Inventory)**
-
-Based on the Product Requirement Document, Functional Spec, and Domain Model, here are the primary screens and flows that require detailed UI/UX specification.
-
-**Core Flows:**
-
-1. **Authentication & Onboarding Flow:** Standard Login, strict password validation, and the Idle Timeout lock screen.  
-2. **Global Dashboard & Net Worth Overview:** The primary executive view for the Principal, featuring top-level roll-ups, historical trends, and quick actions.  
-3. **Asset Directory & Cap Table View:** The core structural ledger. A high-density data table displaying asset ownership, recursive valuations, and subtle Governance "Traffic Lights" (Ghost Entries vs. Verified).  
-4. **Airlock Document Ingestion Flow:** The AI processing interface. Includes the file dropzone, the explicit "LLM Data Privacy Consent" modal, and the asynchronous extraction state machine (Pending \-\> Review Required \-\> Processed).  
-5. **Billing & Overage Resolution State:** The "Unhappy Path" flow handling the 30-day hard-lock grace period, displaying the persistent Red Warning Banner, and the Stripe webhook manual refresh sync.
-
----
-
-# **Vexel: UX and Design Spec**
-
-Excellent. We will tackle these flows sequentially to ensure absolute precision and consistency. I have decided to start with **Flow 1: Authentication & Onboarding Flow**, as it establishes the security paradigm and the initial "breathable, modern consumer-enterprise" visual language.
-
-Here is the deep-dive specification.
-
-### **1\. Authentication & Onboarding Flow Specification**
+### **1\. Global Identity & Role Selection (/login, /onboarding) Specification**
 
 #### **1\. The Mental Model**
 
-The login screen is the "front door" to the family office's vault. It should evoke a sense of absolute security, privacy, and minimalist elegance. There are no distracting marketing graphics or unnecessary links (e.g., no "Sign up" or social logins) —only a focused, centered gateway for authorized Principals, Controllers, and Admins.
-
-\+1
+This flow acts as a secure, frictionless "split in the road." Because Ceeq serves two distinct user types (Searchers and Investors) with entirely different data privacy rules and UI layouts, the user must make an irreversible declaration of their identity immediately after authenticating. The mental model is a standard B2B SaaS authentication gate, followed by a streamlined wizard.
 
 #### **2\. The User Journey (Step-by-Step)**
 
-1. User navigates to the root domain (/login).  
-2. The system presents a clean, centered authentication card.  
-3. User enters their email and password.  
-4. User clicks "Sign In".  
-5. The system enters a brief loading state (button spinner) while validating credentials.  
-6. **Unhappy Path:** If credentials fail, the input fields clear the password, and an inline error is displayed. If rate limits are hit, a strict lockout warning appears.  
-7. \+1  
-8. **Happy Path:** System redirects the user instantly to the Global Dashboard (/dashboard).
+1. User arrives at /login.  
+2. User selects an OAuth provider (Google/Microsoft) or enters Email/Password.  
+3. **If returning user:** The system generates a session and routes them to their respective OS (/searcher/dashboard or /investor/dashboard).  
+4. **If new user:** The system redirects to /onboarding/role-selection.  
+5. User is forced to select a WorkspaceType (Searcher vs. Investor). A warning indicates this is irreversible.  
+6. User proceeds to the Profile step to input their Name, Entity/Fund Name, and LinkedIn URL.  
+7. User clicks "Complete Profile" and is routed to their new Workspace.
+
+#### **3\. Visual Layout & Component Mapping**
+
+**A. ASCII Wireframe**
+
+*(Desktop View: 50/50 Split Screen. Left side is branding/social proof, right side is the interactive form)*
+
+Plaintext
+
+\+-------------------------+---------------------------------------+  
+| \[Brand Area\]            |               \[Logo\]                  |  
+|                         |                                       |  
+| "Streamline your        |  Welcome to Ceeq              |  
+| acquisition pipeline."  |  Log in to your account               |  
+|                         |                                       |  
+|                         |  \[ Continue with Google   \]           |  
+|                         |  \[ Continue with Microsoft\]           |  
+|                         |                                       |  
+|                         |  \---- or continue with email \----     |  
+|                         |                                       |  
+|                         |  Email Address                        |  
+|                         |  \[\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\]                  |  
+|                         |  \[ Sign In With Email     \]           |  
+\+-------------------------+---------------------------------------+
+
+**B. The Component Tree (The "Blueprints")**
+
+*(For the /onboarding Role Selection & Profile step)*
+
+Plaintext
+
+PageWrapper (h-screen, w-full, flex, bg-slate-50)  
+  ├─ LeftBrandingPanel (w-1/2, hidden lg:flex, bg-slate-900, text-white)  
+  │    └─ TestimonialCarousel (delay=5000)  
+  └─ RightAuthPanel (w-full lg:w-1/2, flex-col, items-center, justify-center)  
+       └─ Card (w-full, max-w-md, border-none lg:border-solid, shadow-none lg:shadow-sm)  
+            ├─ CardHeader  
+            │    ├─ CardTitle (text-2xl, font-semibold, tracking-tight)  
+            │    └─ CardDescription (text-slate-500)  
+            └─ CardContent  
+                 └─ Form (onSubmit=handleOnboarding)  
+                      ├─ Step 1: Role Selection (conditional rendering)  
+                      │    └─ RadioGroup (grid, grid-cols-2, gap-4) \<- Mapped to \-\> Workspace.workspaceType  
+                      │         ├─ Label (cursor-pointer, border-slate-200, hover:bg-slate-50)  
+                      │         │    ├─ BuildingIcon (Lucide)  
+                      │         │    ├─ RadioGroupItem (value="SEARCHER")  
+                      │         │    └─ Text ("Searcher / Operator")  
+                      │         └─ Label (cursor-pointer, border-slate-200, hover:bg-slate-50)  
+                      │              ├─ LandmarkIcon (Lucide)  
+                      │              ├─ RadioGroupItem (value="INVESTOR")  
+                      │              └─ Text ("Investor / Fund")  
+                      │  
+                      ├─ Step 2: Profile Data (conditional rendering)  
+                      │    ├─ FormItem  
+                      │    │    ├─ FormLabel ("First Name")  
+                      │    │    └─ Input (type="text") \<- Mapped to \-\> User.firstName  
+                      │    ├─ FormItem  
+                      │    │    ├─ FormLabel ("Last Name")  
+                      │    │    └─ Input (type="text") \<- Mapped to \-\> User.lastName  
+                      │    ├─ FormItem  
+                      │    │    ├─ FormLabel ("Entity / Fund Name")  
+                      │    │    └─ Input (type="text") \<- Mapped to \-\> Workspace.name  
+                      │    └─ FormItem  
+                      │         ├─ FormLabel ("LinkedIn URL")  
+                      │         └─ Input (type="url") \<- Mapped to \-\> User.linkedInUrl  
+                      │  
+                      └─ CardFooter (mt-6, px-0)  
+                           └─ Button (type="submit", variant="default", w-full, bg-slate-900)  
+                                └─ Text ("Complete Setup")
+
+*Contract Gap Note:* I assumed User.firstName, User.lastName, and User.linkedInUrl based on the Functional Spec snippet, though they weren't explicitly detailed in the short schema.prisma snippet. The backend must provide these in the onboarding DTO.
+
+#### **4\. Interactive States & Logic (Finite State Machine)**
+
+**State Machine for Onboarding Submission:**
+
+* **State: IDLE** (User is filling out the form).  
+* **Event: SUBMIT** (User clicks "Complete Setup").  
+* **State: VALIDATING** \-\> Frontend checks if all fields are populated and URL is valid.  
+  * *(If Invalid)* \-\> **State: ERROR\_VALIDATION**. Input borders turn border-rose-500. Inline error text appears below the specific Input.  
+  * *(If Valid)* \-\> **State: LOADING**.  
+* **State: LOADING** \-\> The Button becomes disabled, text changes to "Provisioning Workspace...", and a Lucide Loader2 icon spins inside the button.  
+* **State: NETWORK\_RESPONSE**:  
+  * *(If API Error 500\)* \-\> **State: ERROR\_NETWORK**. Show destructive Toast component ("Unable to create workspace. Please try again."). Button returns to IDLE.  
+  * *(If API Success 200\)* \-\> **State: SUCCESS**. Show success Toast. Trigger Next.js router push() to /searcher/dashboard or /investor/dashboard based on the selected enum.
+
+#### **5\. Microcopy Specifications**
+
+| Component ID | Text Content |
+| :---- | :---- |
+| Auth.Login.Title | Welcome to Ceeq |
+| Auth.Login.Subtitle | Log in to your account to continue |
+| Onboarding.Role.Title | Choose your path |
+| Onboarding.Role.Subtitle | Select how you will use Ceeq. **This choice cannot be changed later.** |
+| Onboarding.Profile.Title | Complete your profile |
+| Onboarding.Profile.Subtitle | Tell us a bit about yourself to set up your workspace. |
+| Error.RoleSelection | Please select a role to continue. |
+| Error.InvalidURL | Please enter a valid LinkedIn URL (e.g., [https://linkedin.com/in/](https://www.google.com/search?q=https://linkedin.com/in/)...). |
+| Toast.Success | Workspace provisioned successfully. Redirecting... |
+
+---
+
+### **2\. Searcher Dashboard Specification**
+
+#### **1\. The Mental Model**
+
+The Searcher Dashboard is the "Mission Control" for the acquisition process. It acts as an aggregator of pipeline health and an inbox for daily operations. The user should perceive this screen as a high-level pulse check: *How many targets are we engaging, how many deals are active, and what needs my attention right now?* It is read-only at the top level, designed to route the user into deeper workflows (like the Kanban board or Sourcing grid).
+
+#### **2\. The User Journey (Step-by-Step)**
+
+1. User logs in and is automatically routed to /searcher/dashboard.  
+2. The global Sidebar is visible on the left, anchoring the navigation.  
+3. The user quickly scans the top-row Metric Cards to assess funnel conversion (Sourced \-\> Engaged \-\> Active Deals \-\> LOIs).  
+4. The user reviews the "Recent Active Deals" table to see the latest status changes or newly signed NDAs.  
+5. The user clicks on a specific Deal row, navigating them directly to the Deal Detail view.
 
 #### **3\. Visual Layout & Component Mapping**
 
@@ -67,123 +139,186 @@ The login screen is the "front door" to the family office's vault. It should evo
 
 Plaintext
 
-\+-------------------------------------------------------------+  
-|                                                             |  
-|                                                             |  
-|           \+---------------------------------------+         |  
-|           |                                       |         |  
-|           |                 VEXEL                 |         |  
-|           |   Enter your credentials to access    |         |  
-|           |                                       |         |  
-|           |   Email Address                       |         |  
-|           |   \[\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\]   |         |  
-|           |                                       |         |  
-|           |   Password                            |         |  
-|           |   \[\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\]   |         |  
-|           |                                       |         |  
-|           |   \[           Sign In             \]   |         |  
-|           |                                       |         |  
-|           \+---------------------------------------+         |  
-|                                                             |  
-|                                                             |  
-\+-------------------------------------------------------------+
+\+---------+-------------------------------------------------------------+
+
+| Sidebar | Dashboard                                        \[Upgrade\]  |
+
+|         |                                                             |
+
+| \[Home\]  | \+-----------+ \+-----------+ \+-----------+ \+---------------+ |
+
+| \[Univ.\] | | Sourced   | | Engaged   | | Act. Deals| | LOIs Issued   | |
+
+| \[Deals\] | | 4,201     | | 312       | | 14        | | 2             | |
+
+| \[Docs\]  | \+-----------+ \+-----------+ \+-----------+ \+---------------+ |
+
+|         |                                                             |
+
+|         | Active Pipeline Overview                                    |
+
+|         | \+---------------------------------------------------------+ |
+
+|         | | Company       | Stage       | Tier      | Last Active   | |
+
+|         | |---------------+-------------+-----------+---------------| |
+
+|         | | Acme Corp     | CIM Review  | Tier 1    | 2 hours ago   | |
+
+|         | | Delta Ind.    | LOI Issued  | Tier 2    | 1 day ago     | |
+
+|         | | Echo Tech     | NDA Signed  | Tier 1    | 3 days ago    | |
+
+|         | \+---------------------------------------------------------+ |
+
+\+---------+-------------------------------------------------------------+
 
 **B. The Component Tree (The "Blueprints")**
 
-We will utilize a deeply nested Shadcn/UI structure, leveraging Tailwind utilities for spatial alignment.
-
 Plaintext
 
-ViewContainer (h-screen w-screen flex flex-col items-center justify-center bg-slate-50)  
-  FormWrapper (w-full max-w-md px-4 sm:px-0)  
-    Card (bg-white shadow-sm border-border)  
-      CardHeader (space-y-1 text-center pb-6)  
-        CardTitle (text-2xl font-semibold tracking-tight tabular-nums) \<- Static text: "Vexel"  
-        CardDescription (text-sm text-muted-foreground)  
-      CardContent  
-        Form  
-          FormContainer (space-y-4)  
-            FormField (name="email")  
-              FormItem (space-y-2)  
-                FormLabel (text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70)  
-                FormControl  
-                  Input (type="email", placeholder="name@familyoffice.com") \<- Mapped to \-\> User.emailAddress   
-                FormMessage (text-\[0.8rem\] text-destructive) \<- Maps to Validation Errors  
-            FormField (name="password")  
-              FormItem (space-y-2)  
-                FormLabel (text-sm font-medium)  
-                FormControl  
-                  Input (type="password") \<- Mapped to \-\> User.passwordHash \[cite: 10\]  
-                FormMessage (text-\[0.8rem\] text-destructive)  
-            ErrorAlertArea (h-8 flex items-center justify-center)  
-              Alert (variant="destructive", hidden if no global auth error)  
-                AlertDescription \<- Mapped to \-\> Auth API Error Response  
-      CardFooter  
-        Button (w-full, size="lg", type="submit")  
-          SpinnerIcon (animate-spin mr-2, hidden if State \!= LOADING)  
-          ButtonText \<- Static text: "Sign In"  
-  Toaster (position="top-right") \<- Renders Global Session Expiration Toasts 
+AppLayout (flex, h-screen, bg-slate-50, overflow-hidden)
 
-*Responsiveness:* On md and above, the card remains strictly 400px wide. On \< md, the card becomes w-full with padding, removing the outer background distinction to mimic a native mobile app login.
+  ├─ Sidebar (w-64, flex-col, border-r, border-slate-200, bg-white, hidden md:flex)
+
+  │    └─ SidebarNav (links to /dashboard, /universe, /pipeline, etc.)
+
+  └─ MainContent (flex-1, flex-col, overflow-y-auto)
+
+       ├─ Topbar (h-16, flex, items-center, justify-between, px-8, border-b, bg-white)
+
+       │    ├─ PageTitle (text-xl, font-semibold, text-slate-900)
+
+       │    └─ SubscriptionBadge (conditional rendering if FREE)
+
+       │         └─ Button (variant="outline", size="sm") \<- Mapped to \-\> Workspace.subscriptionPlan
+
+       │              └─ Text ("Upgrade to Pro")
+
+       └─ PageContainer (p-8, max-w-7xl, mx-auto, w-full, flex-col, gap-8)
+
+            ├─ MetricsGrid (grid, grid-cols-1 md:grid-cols-2 lg:grid-cols-4, gap-4)
+
+            │    ├─ Card (bg-white, shadow-sm)
+
+            │    │    ├─ CardHeader (flex-row, items-center, justify-between, pb-2)
+
+            │    │    │    ├─ CardTitle (text-sm, font-medium, text-slate-500)
+
+            │    │    │    └─ GlobeIcon (Lucide, text-slate-400)
+
+            │    │    └─ CardContent
+
+            │    │         └─ Text (text-2xl, font-bold) \<- Mapped to \-\> Count(SourcingTarget)
+
+            │    ├─ Card (bg-white, shadow-sm)
+
+            │    │    ├─ CardHeader...
+
+            │    │    └─ CardContent \-\> Text \<- Mapped to \-\> Count(SourcingTarget where status=IN\_SEQUENCE)
+
+            │    ├─ Card (bg-white, shadow-sm)
+
+            │    │    ├─ CardHeader...
+
+            │    │    └─ CardContent \-\> Text \<- Mapped to \-\> Count(Deal where status=ACTIVE)
+
+            │    └─ Card (bg-white, shadow-sm)
+
+            │         ├─ CardHeader...
+
+            │         └─ CardContent \-\> Text \<- Mapped to \-\> Count(Deal where stage=LOI\_ISSUED)
+
+            │
+
+            └─ DealsSection (flex-col, gap-4)
+
+                 ├─ SectionHeader (flex, justify-between, items-end)
+
+                 │    ├─ Title (text-lg, font-semibold)
+
+                 │    └─ Button (variant="ghost", size="sm", text-slate-500)
+
+                 │         └─ Text ("View Pipeline \-\>")
+
+                 └─ Card (bg-white, shadow-sm, overflow-hidden)
+
+                      └─ Table (w-full)
+
+                           ├─ TableHeader (bg-slate-50/50)
+
+                           │    └─ TableRow
+
+                           │         ├─ TableHead ("Company")
+
+                           │         ├─ TableHead ("Stage")
+
+                           │         ├─ TableHead ("Visibility")
+
+                           │         └─ TableHead ("Last Updated")
+
+                           └─ TableBody
+
+                                └─ TableRow (hover:bg-slate-50, cursor-pointer) \<- Mapped to \-\> Array\[Deal\]
+
+                                     ├─ TableCell (font-medium, text-slate-900) \<- Mapped to \-\> Deal.Company.name
+
+                                     ├─ TableCell
+
+                                     │    └─ Badge (variant="secondary") \<- Mapped to \-\> Deal.stage
+
+                                     ├─ TableCell
+
+                                     │    └─ Badge (variant="outline") \<- Mapped to \-\> Deal.visibilityTier
+
+                                     └─ TableCell (text-slate-500, text-sm) \<- Mapped to \-\> Deal.updatedAt (Relative time format)
+
+*Contract Gap Note:* I am inferring a SourcingTarget or similar entity for the top-of-funnel metrics based on the Domain Model's mention of createSourcingTargets() and the SourcingStatus enum. The API DTO for the dashboard must aggregate these counts.
 
 #### **4\. Interactive States & Logic (Finite State Machine)**
 
-* **State: IDLE**  
-  * **Event:** User types credentials \-\> **State: TYPING**  
-  * **Event:** Submit \-\> **State: LOADING**  
-* **State: LOADING**  
-  * UI locks. Button enters disabled state with SpinnerIcon.  
-  * **Event:** API returns 200 OK \-\> **State: SUCCESS** (Redirect to /dashboard).  
-  * **Event:** API returns 401 Unauthorized \-\> **State: ERROR\_CREDENTIALS**  
-  * **Event:** API returns 429 Too Many Requests \-\> **State: ERROR\_LOCKED**  
-* **State: ERROR\_CREDENTIALS**  
-  * Logic: Password field clears. Alert component renders above the footer.  
-  * UI explicitly does *not* specify whether email or password was wrong.  
-* **State: ERROR\_LOCKED**  
-  * Logic: Input fields disable. Alert renders strict rate-limit warning. Form submission blocked for 15 minutes.  
-* **State: IDLE\_TIMEOUT (Global Modifier)**  
-  * Logic: If no interaction for 30 minutes, system auto-redirects here.  
-  * UI: Renders Toast notification immediately upon mounting the /login view.
+* **State: INITIAL\_LOAD** \-\> Fetching Dashboard DTO from API.  
+  * **UI Representation:** Render AppLayout and Sidebar. Main content area displays Skeleton components mirroring the MetricsGrid and Table structure.  
+* **State: LOADED\_EMPTY** \-\> API returns 200, but counts are 0 and Deals array is empty.  
+  * **UI Representation:** Metrics display "0". The TableBody is replaced by an EmptyState component: a light grey background inside the Card, a large Telescope icon, and text "Your pipeline is empty. Start sourcing targets in the Universe to build your deal flow." Action button: "Go to Universe."  
+* **State: LOADED\_DATA** \-\> API returns populated DTO. Normal rendering as per the Component Tree.  
+* **State: ERROR\_FETCH** \-\> API returns 500 or timeout.  
+  * **UI Representation:** Replace PageContainer with an ErrorState component. "Unable to load dashboard metrics. \[Retry Button\]."  
+* **Interaction Logic (Row Click):** Clicking a TableRow in the Active Deals list triggers Next.js router push( /searcher/pipeline/deal/${deal.id} ).
 
 #### **5\. Microcopy Specifications**
 
-| Component ID | Scenario / State | Actual Text Content |
-| :---- | :---- | :---- |
-| CardDescription | Default Load | "Sign in to access your secure portal." |
-| FormLabel (Email) | Default Load | "Email Address" |
-| FormLabel (Password) | Default Load | "Password" |
-| Button | Default Load | "Sign In" |
-| AlertDescription | 401 Unauthorized (Invalid Creds) | "Invalid email or password." |
-| AlertDescription | 429 Too Many Requests (Lockout) | "Account temporarily locked due to multiple failed attempts. Please try again in 15 minutes." |
-| ToastNotification | Idle Timeout / Expired Token | "Your session has expired. Please log in again to continue." |
+| Component ID | Text Content |
+| :---- | :---- |
+| Dashboard.Title | Overview |
+| Dashboard.Badge.Upgrade | Upgrade to Pro |
+| Metric.Sourced.Title | Total Universe Sourced |
+| Metric.Engaged.Title | Engaged (In Sequence) |
+| Metric.Active.Title | Active Deals |
+| Metric.LOI.Title | LOIs Issued |
+| Table.Title | Active Pipeline Overview |
+| Table.Action.ViewAll | View Pipeline \-\> |
+| EmptyState.Table.Title | No active deals yet |
+| EmptyState.Table.Body | Your pipeline is currently empty. Head over to the Sourcing Universe to find and engage potential acquisition targets. |
+| Error.DashboardLoad | We couldn't load your dashboard data. Please try again. |
 
 ---
 
-# **Vexel: UX and Design Spec**
-
-Thank you for the approval. Moving forward systematically, we will now detail **Flow 2: Global Dashboard & Net Worth Overview**.
-
-This is the most critical screen in the application. It is the executive summary that the Principal will see immediately after logging in, and it must flawlessly communicate complex mathematical roll-ups (Net Worth), unverified capital (Ghost Entries), and immediate governance issues without overwhelming the user.
-
-Here is the deep-dive specification for the Global Dashboard.
-
-### **2\. Global Dashboard & Net Worth Overview Specification**
+### **3\. Sourcing "Universe" Data Grid Specification**
 
 #### **1\. The Mental Model**
 
-The dashboard acts as an "Executive Control Tower." It is not meant for granular data entry, but rather for high-level consumption and triage. The user should instantly understand three things: *What am I worth right now?* (Net Worth), *What data is pending?* (Pending Capital), and *What is broken/needs my attention?* (Governance Health). The design should feel authoritative, spacious, and mathematically absolute.
+The "Universe" is essentially a highly optimized, opinionated spreadsheet. The user's mental model is one of **triaging and filtering noise to find the signal**. It requires rapid keyboard navigation, bulk actions, and dense data presentation. It is distinctly separate from the CRM (Pipeline); companies here are merely *targets* until they are qualified and "Converted" into active Deals.
 
 #### **2\. The User Journey (Step-by-Step)**
 
-1. User logs in and is routed to /dashboard.  
-2. The system calculates and renders the Total Net Worth hero metric, normalized to the tenant's base currency.  
-3. \+1  
-4. The system calculates and renders the "Pending Capital" widget (sum of unverified ghost entries $\< 60$ days old).  
-5. The system renders the "Top-Level Entities Table" (e.g., Trusts, Holding Cos) that roll up into the Net Worth.  
-6. The system renders a Governance Health Bar summarizing Red/Yellow/Green states across the portfolio.  
-7. \+1  
-8. **Interaction:** The user hovers over the "Pending Capital" widget to see a tooltip explaining its exclusion from Net Worth.  
-9. **Interaction:** The user clicks a row in the Entities Table, which routes them to the detailed Cap Table view for that specific entity.
+1. User navigates to /searcher/universe via the Sidebar.  
+2. The screen loads a paginated grid of thousands of SourcingTarget records.  
+3. User applies complex filters (e.g., "Status \= UNTOUCHED", "Industry \= Manufacturing", "Revenue \> $5M").  
+4. User selects multiple rows using the leftmost checkboxes.  
+5. A "Bulk Action" bar slides into view.  
+6. User clicks "Add to Sequence" to begin automated outreach, which updates the target's SourcingStatus to IN\_SEQUENCE.  
+7. Alternatively, if a target replies positively, the user clicks the row action "Convert to Deal," moving it out of the Universe and into the Deal Pipeline.
 
 #### **3\. Visual Layout & Component Mapping**
 
@@ -191,132 +326,200 @@ The dashboard acts as an "Executive Control Tower." It is not meant for granular
 
 Plaintext
 
-\+-----------------------------------------------------------------------------+  
-|  \[Sidebar Navigation\]  |                                                    |  
-|  \- Dashboard           |  Good Morning, \[User.Name\]                         |  
-|  \- Portfolio           |                                                    |  
-|  \- Entities            |  Total Net Worth                      Pending      |  
-|  \- Airlock             |  $ 125,450,000.00                    $ 1.2M        |  
-|  \- Vault               |                                       \[4 Items\]    |  
-|  \- Governance          |                                                    |  
-|                        |  \------------------------------------------------  |  
-|                        |  Governance Health: \[ 2 Critical \] \[ 1 Warning \]   |  
-|                        |                                                    |  
-|                        |  Top-Level Entities                                |  
-|                        |  \+----------------------------------------------+  |  
-|                        |  | Entity Name         | Type   | Net Value     |  |  
-|                        |  \+----------------------------------------------+  |  
-|                        |  | Alpha Trust (G1)  | Trust  | $ 85,000,000  |  |  
-|                        |  | Beta Holding LLC  | LLC    | $ 40,450,000  |  |  
-|                        |  \+----------------------------------------------+  |  
-\+-----------------------------------------------------------------------------+
+\+---------+-------------------------------------------------------------+
+
+| Sidebar | Sourcing Universe                              \[Import CSV\] |
+
+|         |                                                             |
+
+| \[Home\]  | \[ Search Companies... \] \[ Status Filter v \] \[ Industry v \]  |
+
+| \[Univ.\] |                                                             |
+
+| \[Deals\] | \[x\] 3 selected  |  \[ Add to Sequence \] \[ Archive Targets \]  |
+
+| \[Docs\]  | \+---------------------------------------------------------+ |
+
+|         | | \[ \] | Company     | Domain       | Status       | Added | |
+
+|         | |-----+-------------+--------------+--------------+-------| |
+
+|         | | \[x\] | Alpha Mfg   | alpha.co     | Untouched    | 2d    | |
+
+|         | | \[x\] | Beta Co     | beta.io      | In Sequence  | 5d    | |
+
+|         | | \[x\] | Gamma Ind   | gamma.net    | Untouched    | 1w    | |
+
+|         | | \[ \] | Delta LLC   | delta.com    | Replied      | 2w    | |
+
+|         | \+---------------------------------------------------------+ |
+
+|         |                  \< Previous | Page 1 of 50 | Next \>         |
+
+\+---------+-------------------------------------------------------------+
 
 **B. The Component Tree (The "Blueprints")**
 
 Plaintext
 
-DashboardLayout (flex h-screen bg-slate-50)  
-  Sidebar (w-64 hidden md:flex flex-col border-r border-border bg-white) \<- App Navigation  
-  MainContentArea (flex-1 flex flex-col overflow-hidden)  
-    TopHeader (h-16 flex items-center px-8 bg-white border-b border-border)  
-      Greeting (text-lg font-medium text-slate-900) \<- Static text \+ User.Name  
-      UserAvatar (ml-auto)  
-    ScrollableContent (flex-1 overflow-y-auto p-8 space-y-8)  
-      MetricsGrid (grid grid-cols-1 md:grid-cols-3 gap-6)  
-        Card (col-span-1 md:col-span-2 bg-slate-900 text-white shadow-md) \<- Hero Metric  
-          CardHeader  
-            CardTitle (text-sm font-medium text-slate-300 uppercase tracking-wider) \<- Static: "Total Net Worth"  
-          CardContent  
-            NetWorthValue (text-5xl font-light tabular-nums tracking-tight) \<- Mapped to \-\> Calculated Sum (Recursive Engine)  
-            CurrencyBadge (ml-2 text-xl text-slate-400) \<- Mapped to \-\> Tenant.baseCurrency  
-        Card (col-span-1 border border-border shadow-sm hover:border-slate-300 transition-colors cursor-pointer) \<- Pending Capital Widget  
-          CardHeader  
-            CardTitle (text-sm font-medium text-slate-500 uppercase tracking-wider) \<- Static: "Pending Capital"  
-            TooltipProvider  
-              Tooltip  
-                TooltipTrigger (InfoIcon w-4 h-4 text-slate-400 ml-2)  
-                TooltipContent \<- Static: "Unverified capital \< 60 days old. Excluded from Net Worth."  
-          CardContent  
-            PendingSum (text-3xl font-medium tabular-nums text-slate-900) \<- Mapped to \-\> Sum(Ghost Entries \< 60 days)  
-            PendingCount (text-sm text-slate-500 mt-1) \<- Mapped to \-\> Count(Ghost Entries \< 60 days)  
-      GovernanceHealthBar (flex items-center space-x-4 p-4 bg-white border border-border rounded-lg shadow-sm)  
-        HealthLabel (text-sm font-medium text-slate-700) \<- Static: "Portfolio Health:"  
-        Badge (variant="destructive")  
-          RedStatusIcon (w-3 h-3 mr-2)  
-          CountText \<- Mapped to \-\> Count(Assets/Tasks where State \== RED)  
-        Badge (variant="warning", className="bg-amber-100 text-amber-800")  
-          YellowStatusIcon (w-3 h-3 mr-2)  
-          CountText \<- Mapped to \-\> Count(Assets/Tasks where State \== YELLOW)  
-      EntitiesSection (space-y-4)  
-        SectionHeader (flex justify-between items-center)  
-          SectionTitle (text-xl font-semibold text-slate-900) \<- Static: "Top-Level Entities"  
-          ViewAllLink (text-sm text-blue-600 hover:underline cursor-pointer)  
-        Card (bg-white shadow-sm border-border overflow-hidden)  
-          Table  
-            TableHeader  
-              TableRow (bg-slate-50)  
-                TableHead \<- Static: "Entity Name"  
-                TableHead \<- Static: "Type"  
-                TableHead (text-right) \<- Static: "Net Value"  
-            TableBody  
-              TableRow (hover:bg-slate-50 cursor-pointer transition-colors) \<- Iterates over Top-Level Entities mapped to User  
-                TableCell (font-medium text-slate-900 flex items-center)  
-                  StatusIndicator (w-2 h-2 rounded-full mr-3) \<- Mapped to \-\> Entity.governance\_state (Green/Yellow/Red)  
-                  EntityName \<- Mapped to \-\> Entity.name  
-                TableCell (text-slate-500) \<- Mapped to \-\> Entity.entity\_type  
-                TableCell (text-right tabular-nums font-medium) \<- Mapped to \-\> Calculated Net Value of Entity
+AppLayout (flex, h-screen, bg-slate-50, overflow-hidden)
 
-*Responsiveness:* On mobile (\< md), the Sidebar is hidden, replaced by a bottom navigation bar. The MetricsGrid stacks vertically, prioritizing the Net Worth hero card. The Table component collapses into a stacked card layout (Mobile Stack View).
+  ├─ Sidebar (persistent)
+
+  └─ MainContent (flex-1, flex-col, overflow-y-hidden)
+
+       ├─ PageHeader (h-16, flex, items-center, justify-between, px-8, bg-white, border-b)
+
+       │    ├─ TitleGroup (flex, items-center, gap-2)
+
+       │    │    └─ PageTitle (text-xl, font-semibold)
+
+       │    └─ ActionGroup (flex, gap-2)
+
+       │         └─ Button (variant="outline", size="sm") 
+
+       │              ├─ UploadIcon (Lucide)
+
+       │              └─ Text ("Import CSV")
+
+       └─ PageContainer (flex-1, flex-col, p-8, w-full, overflow-hidden)
+
+            ├─ DataTableToolbar (flex, items-center, justify-between, pb-4)
+
+            │    ├─ FilterGroup (flex, gap-2, flex-1)
+
+            │    │    ├─ Input (placeholder="Search companies...", w-72) \<- Mapped to \-\> API Query Param: search
+
+            │    │    ├─ Select (placeholder="Status") \<- Mapped to \-\> API Query Param: status (SourcingStatus Enum)
+
+            │    │    │    └─ SelectContent \-\> SelectItems (UNTOUCHED, IN\_SEQUENCE, REPLIED, etc.)
+
+            │    │    └─ Select (placeholder="Industry") \<- Mapped to \-\> API Query Param: industry
+
+            │    └─ ViewOptions (flex, gap-2)
+
+            │         └─ DropdownMenu (trigger: Button variant="outline") \-\> Toggle columns visibility
+
+            │
+
+            ├─ BulkActionBar (absolute, top-24, left-1/2, \-translate-x-1/2, bg-slate-900, text-white, rounded-full, px-4, py-2, flex, items-center, gap-4, z-50) \<- Renders ONLY if SelectedRows.length \> 0
+
+            │    ├─ Text (text-sm, font-medium) \<- Mapped to \-\> "{SelectedRows.length} selected"
+
+            │    ├─ Separator (orientation="vertical", h-4, bg-slate-700)
+
+            │    ├─ Button (variant="ghost", size="sm", hover:bg-slate-800) \-\> Text ("Add to Sequence")
+
+            │    └─ Button (variant="ghost", size="sm", hover:bg-slate-800, text-rose-400) \-\> Text ("Archive")
+
+            │
+
+            ├─ DataTableWrapper (flex-1, overflow-auto, border, border-slate-200, rounded-md, bg-white)
+
+            │    └─ Table (w-full, relative)
+
+            │         ├─ TableHeader (sticky, top-0, bg-slate-50, shadow-sm, z-10)
+
+            │         │    └─ TableRow
+
+            │         │         ├─ TableHead (w-12) \-\> Checkbox (Indeterminate state supported)
+
+            │         │         ├─ TableHead \-\> Button (variant="ghost") \-\> Text ("Company") & SortIcon
+
+            │         │         ├─ TableHead \-\> Text ("Domain")
+
+            │         │         ├─ TableHead \-\> Text ("Status")
+
+            │         │         └─ TableHead \-\> Text ("Actions")
+
+            │         └─ TableBody
+
+            │              └─ TableRow (hover:bg-slate-50) \<- Mapped to \-\> Array\[SourcingTarget\]
+
+            │                   ├─ TableCell \-\> Checkbox \<- Mapped to \-\> Row Selection State
+
+            │                   ├─ TableCell (font-medium, text-slate-900) \<- Mapped to \-\> SourcingTarget.name
+
+            │                   ├─ TableCell (text-slate-500) \<- Mapped to \-\> SourcingTarget.domain
+
+            │                   ├─ TableCell
+
+            │                   │    └─ Badge \<- Mapped to \-\> SourcingTarget.status
+
+            │                   │         (Variant Logic: UNTOUCHED \= default, IN\_SEQUENCE \= secondary, REPLIED \= success)
+
+            │                   └─ TableCell
+
+            │                        └─ DropdownMenu (trigger: MoreHorizontalIcon)
+
+            │                             ├─ DropdownMenuItem \-\> Text ("View Details")
+
+            │                             ├─ DropdownMenuItem \-\> Text ("Convert to Deal") \-\> Triggers Pipeline migration
+
+            │                             └─ DropdownMenuItem (text-rose-600) \-\> Text ("Archive")
+
+            │
+
+            └─ DataTablePagination (flex, items-center, justify-between, pt-4)
+
+                 ├─ Text (text-sm, text-slate-500) \<- Mapped to \-\> "Showing X to Y of Z rows"
+
+                 └─ PaginationGroup (flex, gap-2)
+
+                      ├─ Button (variant="outline", size="icon", disabled if page=1) \-\> ChevronLeftIcon
+
+                      └─ Button (variant="outline", size="icon", disabled if no next page) \-\> ChevronRightIcon
+
+*Contract Gap Note:* I assumed standard fields like SourcingTarget.name and SourcingTarget.domain. If the API relies exclusively on the hashed domain mechanism mentioned in the functional spec to prevent collisions, the backend DTO must still resolve the display string for the frontend safely.
 
 #### **4\. Interactive States & Logic (Finite State Machine)**
 
-* **State: INITIAL\_LOAD**  
-  * UI renders Skeleton components for the NetWorthValue, PendingSum, and TableBody while the recursive engine executes the Cap Table calculation.  
-* **State: DATA\_READY (Green/Verified)**  
-  * Net Worth displays. GovernanceHealthBar shows 0 Red/Yellow. Table rows all feature Green status dots.  
-* **State: HAS\_PENDING\_CAPITAL**  
-  * If Count(Ghost Entries \< 60 days) \> 0, the Pending Capital widget renders the sum.  
-  * **Event:** Click Widget \-\> Routes to /airlock filtered by status=pending.  
-* **State: HAS\_GOVERNANCE\_WARNINGS**  
-  * If any asset/entity evaluates to Yellow or Red, the GovernanceHealthBar badges render the count.  
-  * \+1  
-  * Table rows reflect the inherited status (e.g., a Red dot next to "Alpha Trust" if an underlying asset is failing).  
-  * **Event:** Click Red Badge \-\> Routes to /governance task list.  
-* **State: EMPTY\_PORTFOLIO (First Login)**  
-  * If Tenant.assets.length \== 0 and Tenant.entities.length \== 0.  
-  * Net Worth displays $0.00.  
-  * Table renders a zero-state graphic with a primary action button: "Create Your First Entity".  
-* **State: STRIPE\_OVERAGE\_HARD\_LOCK (Global Modifier)**  
-  * Logic: If Tenant.overageStartDate \> 30 days.  
-  * UI: A non-dismissible Red Alert banner is injected at the very top of the MainContentArea: "Plan limit exceeded. You can no longer add new assets. Upgrade to unlock.".
+* **State: FETCHING** \-\> Data is being retrieved based on current filter/pagination state.  
+  * *UI:* The TableBody renders 10 Skeleton rows mimicking the table structure to prevent layout shift.  
+* **State: IDLE (Data Populated)** \-\> User can browse and interact.  
+* **State: FILTERING** \-\> User types in the search input or selects a dropdown.  
+  * *Logic:* Triggers a debounce (300ms) \-\> Transitions back to **FETCHING**.  
+* **State: BULK\_SELECTED** \-\> User checks one or more row checkboxes.  
+  * *UI:* The BulkActionBar animates in (slide up \+ fade).  
+* **Event: CONVERT\_TO\_DEAL** \-\> User clicks "Convert to Deal" on a row.  
+  * *Logic:* **State: MUTATING** \-\> Trigger API call POST /api/deals using target data.  
+  * *(If Success)* \-\> Show Success Toast. Remove row from local state (optimistic UI update).  
+  * *(If Collision/Hash Match Error)* \-\> **State: ERROR\_COLLISION**. Show Destructive Toast: "This domain is already tracked in your or another pipeline under NDA."  
+* **Empty State:** If filters return zero results, TableBody displays an empty state container: "No targets found matching your filters. \[Clear Filters Button\]".
 
 #### **5\. Microcopy Specifications**
 
-| Component ID | Scenario / State | Actual Text Content |
-| :---- | :---- | :---- |
-| TooltipContent (Pending) | Default Load | "Unverified capital extracted from documents within the last 60 days. This sum is strictly excluded from your Total Net Worth until manually approved." |
-| EmptyStateTitle (Table) | No Entities Exist | "Your portfolio is empty." |
-| EmptyStateAction (Table) | No Entities Exist | "Begin by defining your top-level legal entities (Trusts, Holding Companies) to establish your cap table architecture." |
-| PendingCount | 1 Item Pending | "$\[X\] across 1 pending item" |
-| PendingCount | \> 1 Items Pending | "$\[X\] across \[Count\] pending items" |
-| PendingSum | 0 Items Pending | "All data reconciled" (Renders instead of $0.00, accompanied by a Green checkmark icon). |
+| Component ID | Text Content |
+| :---- | :---- |
+| Universe.Header.Title | Sourcing Universe |
+| Universe.Action.Import | Import CSV |
+| Filter.Search.Placeholder | Search companies or domains... |
+| BulkAction.Sequence | Add to Sequence |
+| BulkAction.Archive | Archive Targets |
+| Badge.Status.Untouched | Untouched |
+| Badge.Status.InSequence | In Sequence |
+| Badge.Status.Replied | Replied |
+| RowAction.ConvertToDeal | Convert to Deal |
+| Toast.Success.Converted | Successfully converted to a Deal. |
+| Toast.Error.Collision | Cannot convert: Domain hash collision detected. Target already protected under NDA. |
+| EmptyState.Filters | No targets found. Try adjusting your search criteria. |
 
 ---
 
-### **3\. Asset Directory & Cap Table View Specification**
+### **4\. Deal Pipeline (Kanban CRM) Specification**
 
 #### **1\. The Mental Model**
 
-If the Dashboard is the "Executive Control Tower," the Asset Directory is the "Master Ledger." This screen must handle extreme data density without feeling cluttered. The mental model is an infinitely nestable, hierarchical spreadsheet that acts as the single source of truth for the family office's ownership structure. It uses an expandable row pattern to visually represent recursive ownership (e.g., a Trust owning an LLC, which owns Real Estate).
+The Pipeline is a spatial, tactile representation of the acquisition funnel. The user's mental model is based on "momentum" and "progression." They are physically moving a company through the stages of a deal. Because this view contains mixed data (both private Tier 1 deals and shared Tier 2 deals), the UI must make the privacy status of each card immediately obvious at a glance to prevent accidental disclosure during screen-sharing or analyst reviews.
 
 #### **2\. The User Journey (Step-by-Step)**
 
-1. User navigates to /assets.  
-2. The system renders the primary Asset Directory, defaulting to a top-level view (only showing parent entities that are not owned by anything else).  
-3. The user sees an expand/collapse chevron next to "Master Trust."  
-4. **Interaction:** The user clicks the chevron. The row expands downwards to reveal the child assets (e.g., "Waystar HoldCo LLC") indented below it, along with their ownership percentages.  
-5. **Interaction:** The user clicks the "More Actions" (...) menu on a specific asset row to open a dropdown menu.  
-6. **Interaction:** The user selects "View Details," which triggers a Sheet component to slide in from the right side of the screen, displaying the deep-dive view and edit forms for that specific asset without losing context of the main table.
+1. User navigates to /searcher/pipeline via the Sidebar.  
+2. The screen loads a horizontally scrolling board with columns strictly mapped to the DealStage enum.  
+3. User scans the board to assess bottlenecks (e.g., "Why do we have 10 deals in CIM Review and 0 LOIs?").  
+4. User clicks and holds a Deal Card in the "NDA Signed" column, dragging it over to the "CIM Review" column.  
+5. Upon dropping the card, the UI instantly reflects the new state (optimistic update), while a background API call updates the Deal.stage in the database.  
+6. User clicks directly on a Deal Card to open the detailed Workspace for that specific deal.
 
 #### **3\. Visual Layout & Component Mapping**
 
@@ -324,377 +527,927 @@ If the Dashboard is the "Executive Control Tower," the Asset Directory is the "M
 
 Plaintext
 
-\+-----------------------------------------------------------------------------+  
-|  \[Sidebar Navigation\]  |  Asset Directory                            \[+ Add\]  |  
-|                        |                                                    |  
-|                        |  \[ Search Assets... \] \[ Filter: All Types v \]      |  
-|                        |  \+----------------------------------------------+  |  
-|                        |  |   | Name             | Type  | Own % | Value |  |  
-|                        |  \+----------------------------------------------+  |  
-|                        |  | v | Alpha Trust (G1) | Trust | 100%  | $ 85M |  |  
-|                        |  |   |   L Beta Holding | LLC   |  50%  | $ 40M |  |  
-|                        |  |   |   L Delta Realty | Real  |  50%  | $ 45M |  |  
-|                        |  | \> | Gamma Foundation | Trust | 100%  | $ 12M |  |  
-|                        |  \+----------------------------------------------+  |  
-\+-----------------------------------------------------------------------------+
+\+---------+-------------------------------------------------------------+
+
+| Sidebar | Pipeline                                  \[ \+ New Deal \]    |
+
+|         |                                                             |
+
+| \[Home\]  | Filters: \[ All Tiers v \] \[ Active Deals v \]                 |
+
+| \[Univ.\] | \+----------------+ \+----------------+ \+-------------------+ |
+
+| \[Deals\] | | INBOX (2)      | | NDA SIGNED (1) | | CIM REVIEW (3)    | |
+
+| \[Docs\]  | \+----------------+ \+----------------+ \+-------------------+ |
+
+|         | | \+------------+ | | \+------------+ | | \+---------------+ | |
+
+|         | | | Alpha Mfg  | | | | Beta Co    | | | | Delta LLC     | | |
+
+|         | | | Tier 1     | | | | Tier 2     | | | | Tier 1        | | |
+
+|         | | | 2 days ago | | | | 5 hrs ago  | | | | 1 week ago    | | |
+
+|         | | \+------------+ | | \+------------+ | | \+---------------+ | |
+
+|         | | \+------------+ | |                | |                   | |
+
+|         | | | Gamma Ind  | | |                | |                   | |
+
+|         | | | Tier 2     | | |                | |                   | |
+
+|         | | | 1 hr ago   | | |                | |                   | |
+
+|         | | \+------------+ | |                | |                   | |
+
+|         | \+----------------+ \+----------------+ \+-------------------+ |
+
+\+---------+-------------------------------------------------------------+
 
 **B. The Component Tree (The "Blueprints")**
 
 Plaintext
 
-PageContainer (flex-1 flex flex-col h-full bg-slate-50 p-8)  
-  PageHeader (flex justify-between items-end mb-6)  
-    HeaderTitles (space-y-1)  
-      PageTitle (text-2xl font-semibold tracking-tight text-slate-900) \<- Static: "Asset Directory"  
-      PageDescription (text-sm text-slate-500) \<- Static: "Manage your cap table and entity structures."  
-    HeaderActions (flex space-x-3)  
-      Button (variant="default")  
-        PlusIcon (w-4 h-4 mr-2)  
-        Text \<- Static: "Add Asset"  
-  Toolbar (flex space-x-4 mb-4)  
-    Input (placeholder="Search assets...", className="max-w-sm bg-white") \<- Mapped to \-\> Local Filter State  
-    Select (defaultValue="ALL") \<- Mapped to \-\> Asset.type Filter  
-      SelectTrigger (bg-white)  
-        SelectValue (placeholder="All Types")  
-      SelectContent  
-        SelectItem (value="TRUST") \<- Static: "Trust"  
-        SelectItem (value="LLC") \<- Static: "LLC"  
-        SelectItem (value="REAL\_ESTATE") \<- Static: "Real Estate"  
-  TableContainer (border border-border rounded-md bg-white shadow-sm overflow-hidden flex-1)  
-    Table  
-      TableHeader  
-        TableRow (bg-slate-50)  
-          TableHead (w-12) \<- Spacer for Chevron  
-          TableHead \<- Static: "Asset Name"  
-          TableHead \<- Static: "Type"  
-          TableHead (text-right) \<- Static: "Ownership %"  
-          TableHead (text-right) \<- Static: "Total Value"  
-          TableHead (w-12) \<- Spacer for Actions Dropdown  
-      TableBody  
-        Collapsible (asChild) \<- Iterates over Top-Level Assets  
-          TableRow (group hover:bg-slate-50 transition-colors border-b border-border)  
-            TableCell  
-              CollapsibleTrigger (asChild)  
-                Button (variant="ghost", size="icon", className="w-6 h-6 p-0")  
-                  ChevronRightIcon (transition-transform duration-200, rotate-90 on expand)  
-            TableCell (font-medium text-slate-900 flex items-center space-x-2)  
-              StatusDot (w-2 h-2 rounded-full) \<- Mapped to \-\> Asset.governance\_state  
-              AssetIcon (w-4 h-4 text-slate-400) \<- Derived from Asset.type  
-              Text \<- Mapped to \-\> Asset.name  
-            TableCell (text-slate-500 text-sm) \<- Mapped to \-\> Asset.type  
-            TableCell (text-right tabular-nums text-slate-500) \<- Mapped to \-\> EntityOwnership.percentage (or 100% if top-level)  
-            TableCell (text-right tabular-nums font-medium text-slate-900) \<- Mapped to \-\> Asset.totalValue  
-            TableCell  
-              DropdownMenu  
-                DropdownMenuTrigger (asChild)  
-                  Button (variant="ghost", size="icon", className="h-8 w-8 p-0")  
-                    MoreHorizontalIcon (w-4 h-4)  
-                DropdownMenuContent (align="end")  
-                  DropdownMenuLabel \<- Static: "Actions"  
-                  DropdownMenuItem \<- Static: "View Details" (Triggers Sheet)  
-                  DropdownMenuItem \<- Static: "Add Child Asset"  
-                  DropdownMenuSeparator  
-                  DropdownMenuItem (className="text-destructive") \<- Static: "Delete Asset"  
-        CollapsibleContent (asChild) \<- Rendered if Row is expanded  
-          TableRow (bg-slate-50/50) \<- Iterates over Child Assets (EntityOwnership)  
-            TableCell \<- Spacer  
-            TableCell (pl-8 flex items-center space-x-2 text-sm) \<- Indented to show hierarchy  
-              CornerDownRightIcon (w-3 h-3 text-slate-300)  
-              StatusDot (w-2 h-2 rounded-full) \<- Mapped to \-\> ChildAsset.governance\_state  
-              Text \<- Mapped to \-\> ChildAsset.name  
-            // ... remaining cells map to ChildAsset fields  
-  AssetDetailSheet (Side modal triggering on "View Details")  
-    Sheet  
-      SheetContent (className="sm:max-w-xl overflow-y-auto")  
-        SheetHeader  
-          SheetTitle \<- Mapped to \-\> SelectedAsset.name  
-          SheetDescription \<- Mapped to \-\> SelectedAsset.id (UUID)  
-        // Detailed forms and deeper metrics go here
+AppLayout (flex, h-screen, bg-slate-50, overflow-hidden)
 
-*Responsiveness:* On mobile (\< md), the standard data table is completely hidden. It is replaced by a \<StackList\> component where each asset is a discrete \<Card\> showing the Name, Type, and Value. Clicking the card uses standard iOS-style push navigation to show children or details.
+  ├─ Sidebar (persistent)
+
+  └─ MainContent (flex-1, flex-col, h-full)
+
+       ├─ PageHeader (h-16, flex, items-center, justify-between, px-8, bg-white, border-b, shrink-0)
+
+       │    ├─ TitleGroup
+
+       │    │    └─ PageTitle (text-xl, font-semibold)
+
+       │    └─ ActionGroup
+
+       │         └─ Button (variant="default", size="sm", bg-slate-900)
+
+       │              ├─ PlusIcon
+
+       │              └─ Text ("Manual Deal Entry")
+
+       │
+
+       ├─ PipelineToolbar (px-8, py-4, flex, gap-4, border-b, bg-white, shrink-0)
+
+       │    ├─ Select \<- Mapped to \-\> Filter: visibilityTier (TIER\_1\_PRIVATE, TIER\_2\_SHARED)
+
+       │    └─ Select \<- Mapped to \-\> Filter: status (ACTIVE, ARCHIVED, LOST)
+
+       │
+
+       └─ KanbanBoardWrapper (flex-1, overflow-x-auto, overflow-y-hidden, p-8)
+
+            └─ DragDropContext (Dnd-kit or React-Beautiful-DnD wrapper)
+
+                 └─ BoardGrid (flex, gap-6, h-full, min-w-max)
+
+                      ├─ KanbanColumn (w-80, flex-col, h-full, bg-slate-100/50, rounded-lg) \<- Mapped to \-\> DealStage.INBOX
+
+                      │    ├─ ColumnHeader (p-3, flex, justify-between, items-center)
+
+                      │    │    ├─ Title (text-sm, font-semibold, text-slate-700) \-\> "Inbox"
+
+                      │    │    └─ Badge (variant="secondary") \<- Mapped to \-\> Count(Deals in INBOX)
+
+                      │    └─ DroppableArea (flex-1, p-3, overflow-y-auto, flex-col, gap-3)
+
+                      │         └─ DraggableCard (bg-white, border, rounded-md, shadow-sm, cursor-grab) \<- Mapped to \-\> Array\[Deal\]
+
+                      │              ├─ CardHeader (p-3, pb-0, flex, justify-between, items-start)
+
+                      │              │    ├─ Text (font-medium, text-slate-900) \<- Mapped to \-\> Deal.Company.name
+
+                      │              │    └─ DropdownMenu (trigger: MoreVerticalIcon) \-\> Actions (Archive, Delete)
+
+                      │              └─ CardContent (p-3, pt-2, flex-col, gap-2)
+
+                      │                   ├─ PrivacyBadge (conditional styling) \<- Mapped to \-\> Deal.visibilityTier
+
+                      │                   │    (TIER\_1\_PRIVATE \= default/slate, TIER\_2\_SHARED \= emerald 'Shared')
+
+                      │                   └─ FooterMetadata (flex, justify-between, items-center, mt-2)
+
+                      │                        ├─ Text (text-xs, text-slate-500) \<- Mapped to \-\> Deal.updatedAt
+
+                      │                        └─ AvatarGroup (size="sm") \<- Mapped to \-\> Deal.assignedAnalysts
+
+                      │
+
+                      ├─ KanbanColumn \<- Mapped to \-\> DealStage.NDA\_SIGNED
+
+                      ├─ KanbanColumn \<- Mapped to \-\> DealStage.CIM\_REVIEW
+
+                      ├─ KanbanColumn \<- Mapped to \-\> DealStage.LOI\_ISSUED
+
+                      ├─ KanbanColumn \<- Mapped to \-\> DealStage.DUE\_DILIGENCE
+
+                      └─ KanbanColumn \<- Mapped to \-\> DealStage.CLOSED\_WON
+
+*Contract Gap Note:* I added an assignedAnalysts visual element (Avatars). The Functional Spec mentions "team management" and "editing by multiple Searcher Analysts", but the provided Domain Model snippet didn't explicitly show the many-to-many relationship table between Deal and User. The API will need to provide the assigned user's avatar/initials in the DTO for this to render.
 
 #### **4\. Interactive States & Logic (Finite State Machine)**
 
-* **State: IDLE (Loaded)**  
-  * All top-level assets are rendered. Children are hidden inside closed Collapsible states.  
-* **State: ROW\_EXPANDING**  
-  * **Event:** User clicks Chevron.  
-  * Logic: If child data is not pre-fetched, trigger skeleton loaders inside the CollapsibleContent while fetching the EntityOwnership array for that specific parentAssetId. If cached, animate open immediately.  
-* **State: SEARCHING / FILTERING**  
-  * **Event:** User types in Input or selects from Select.  
-  * Logic: System debounces input (300ms) and filters the visible tree. *Crucial UX rule:* If a child asset matches the search but the parent does not, the system must render the parent row in an auto-expanded state to show the matching child, preserving the structural context.  
-* **State: ZERO\_RESULTS**  
-  * Logic: Search yields no matches.  
-  * UI: Table body is replaced with an empty state: "No assets match your search." with a button to "Clear Filters".  
-* **State: ASSET\_DETAIL\_OPEN**  
-  * **Event:** User selects "View Details" from the row dropdown.  
-  * UI: Sheet slides in, locking the background scroll. The URL updates via shallow routing (e.g., ?asset=uuid) to allow direct linking to the detail view without losing the underlying table state.
+* **State: FETCHING** \-\> Initial load. Columns render with Skeleton cards.  
+* **State: IDLE** \-\> Data loaded, board ready for interaction.  
+* **State: DRAGGING** \-\> User clicks and drags a DraggableCard.  
+  * *UI:* The dragged card receives a prominent shadow-lg and slight rotation (e.g., rotate-2). The DroppableArea being hovered over highlights slightly (bg-slate-200/50).  
+* **Event: DROP** \-\> User releases the card over a new column.  
+  * *Logic:* **State: MUTATING**. The UI updates instantly (Optimistic UI) placing the card in the new column and updating the column counts. A PATCH /api/deals/{id} request is fired to update Deal.stage.  
+  * *(If API Success 200\)* \-\> Silent success. State returns to **IDLE**.  
+  * *(If API Fail 500/Timeout)* \-\> **State: ERROR\_ROLLBACK**. The card snaps back to its original column. A destructive Toast appears: "Failed to update deal stage. Please check your connection."  
+* **Column Empty State:** If a column has no deals, the DroppableArea displays a dashed border outline and subtle text: "Drop deals here".
 
 #### **5\. Microcopy Specifications**
 
-| Component ID | Scenario / State | Actual Text Content |
-| :---- | :---- | :---- |
-| PageTitle | Default Load | "Asset Directory" |
-| PageDescription | Default Load | "Manage your cap table and entity structures." |
-| Search Input Placeholder | Default Load | "Search assets by name or ID..." |
-| Empty State (Search) | No search results found | "No assets found. Try adjusting your search or clearing filters." |
-| DropdownMenuItem (Add) | Happy Path | "Add Child Asset" |
-| DropdownMenuItem (Delete) | Happy Path | "Delete Asset" |
-| Delete Confirmation Dialog | User clicks Delete | "Are you sure you want to delete \[Asset.name\]? This action cannot be undone and will recursively remove all child ownership connections." |
+| Component ID | Text Content |
+| :---- | :---- |
+| Pipeline.Header.Title | Deal Pipeline |
+| Pipeline.Action.NewDeal | Manual Deal Entry |
+| Column.INBOX | Inbox |
+| Column.NDA\_SIGNED | NDA Signed |
+| Column.CIM\_REVIEW | CIM Review |
+| Column.LOI\_ISSUED | LOI Issued |
+| Column.DUE\_DILIGENCE | Due Diligence |
+| Column.CLOSED\_WON | Closed / Won |
+| Badge.Tier1 | Tier 1 (Private) |
+| Badge.Tier2 | Tier 2 (Shared) |
+| Toast.Error.DragDrop | Failed to move deal. The change has been reverted. |
 
 ---
 
-### **4\. Airlock Document Ingestion Flow Specification**
+### **5\. Deal Detail & Workspace Specification**
 
 #### **1\. The Mental Model**
 
-The Airlock is the system’s "quarantine zone." Because Vexel deals with highly sensitive financial PDFs (K-1s, statements, valuations) that are processed by AI, users need to feel they are placing documents into a secure, controlled chamber. The mental model is a highly structured mailroom: documents are dropped in, the AI extracts the data (creating "Ghost Entries"), and human Controllers must explicitly verify the extraction before the data is allowed into the permanent Asset Directory.
+The mental model here is a **secure, centralized dossier**. The Searcher must feel absolute confidence in the privacy controls. Because a single click dictates whether an Investor can see this deal (Tier 2\) or if it remains strictly confidential (Tier 1), the UI must make the current visibility state the most prominent element on the screen. The layout is structured as a hub-and-spoke, using Tabs to organize deep data (Documents, Financials) without overwhelming the initial Overview.
 
 #### **2\. The User Journey (Step-by-Step)**
 
-1. User navigates to /airlock.  
-2. The user drags and drops a PDF into the primary upload dropzone.  
-3. **Crucial Interruption:** The system immediately suspends the upload and presents the "LLM Data Privacy Consent" Modal.  
-4. The user explicitly types "I CONSENT" and confirms.  
-5. The document uploads and appears in the queue with a status of PENDING\_EXTRACTION.  
-6. Once the AI webhook returns, the status changes to REVIEW\_REQUIRED.  
-7. **Interaction:** The user clicks "Review". A full-screen split-pane interface opens: original PDF on the left, the extracted "Ghost Entry" data fields on the right.  
-8. The user corrects any AI mistakes and clicks "Approve & Post to Ledger."  
-9. The document status updates to PROCESSED, and the data becomes an active Asset/Valuation.
+1. User clicks a Deal card in the Pipeline and lands on /searcher/pipeline/deal/{id}.  
+2. The Header clearly displays the Company Name, current DealStage, and a prominent VisibilityTier toggle.  
+3. User reviews the "Overview" tab, showing company firmographics and recent activity.  
+4. User switches to the "Documents" tab to upload a new CIM (Confidential Information Memorandum).  
+5. User toggles the specific document's visibility to "Shared" (allowing Investors to view it, assuming the Deal itself is Tier 2).  
+6. User decides to share the deal with their Investor network by clicking the "Upgrade to Tier 2 (Shared)" button in the header, triggering a confirmation modal.
 
 #### **3\. Visual Layout & Component Mapping**
 
-**A. ASCII Wireframe (Main Airlock View)**
+**A. ASCII Wireframe**
 
 Plaintext
 
-\+-----------------------------------------------------------------------------+  
-|  \[Sidebar Navigation\]  |  Airlock Ingestion                            |    |  
-|                        |                                                    |  
-|                        |  \+----------------------------------------------+  |  
-|                        |  |                                              |  |  
-|                        |  |       \[^\] Drag & Drop Financial PDFs         |  |  
-|                        |  |     (K-1s, Appraisals, Bank Statements)      |  |  
-|                        |  |                                              |  |  
-|                        |  \+----------------------------------------------+  |  
-|                        |                                                    |  
-|                        |  \[Tabs:  Needs Review (2) | Pending (1) | Done \]   |  
-|                        |  \+----------------------------------------------+  |  
-|                        |  | Document Name     | Uploaded   | Status | Act|  |  
-|                        |  \+----------------------------------------------+  |  
-|                        |  | Q4\_Appraisal.pdf  | 10 min ago | YELLOW | \[\>\]|  |  
-|                        |  | K1\_AlphaTrust.pdf | 2 hrs ago  | YELLOW | \[\>\]|  |  
-|                        |  \+----------------------------------------------+  |  
-\+-----------------------------------------------------------------------------+
+\+---------+-------------------------------------------------------------+
+
+| Sidebar | \< Back to Pipeline                                          |
+
+|         | \=========================================================== |
+
+| \[Home\]  |  Acme Logistics               \[ Stage: CIM Review v \]       |
+
+| \[Univ.\] |  acme.com                     \[ TIER 1 (PRIVATE) Toggle \]   |
+
+| \[Deals\] | \=========================================================== |
+
+| \[Docs\]  |  \[ Overview \]  \[ Documents (4) \]  \[ Financials \]            |
+
+|         |                                                             |
+
+|         |  \+--------------------------+ \+---------------------------+ |
+
+|         |  | Company Details      \[E\] | | Activity Feed             | |
+
+|         |  | Industry: Logistics      | |                           | |
+
+|         |  | HQ: Chicago, IL          | | \* Jules uploaded CIM.pdf  | |
+
+|         |  | Employees: 150           | | \* Moved to CIM Review     | |
+
+|         |  \+--------------------------+ | \* Deal created            | |
+
+|         |  \+--------------------------+ |                           | |
+
+|         |  | AI P\&L Summary           | |                           | |
+
+|         |  | Rev: $12.5M  Margin: 40% | | \[ Input: Add Note... \]    | |
+
+|         |  \+--------------------------+ \+---------------------------+ |
+
+\+---------+-------------------------------------------------------------+
 
 **B. The Component Tree (The "Blueprints")**
 
 Plaintext
 
-PageContainer (flex-1 flex flex-col h-full bg-slate-50 p-8)  
-  PageHeader (mb-6)  
-    PageTitle \<- Static: "Airlock Ingestion"  
-    PageDescription \<- Static: "Securely extract structured data from your financial documents."  
-  DropzoneArea (mb-8)  
-    Card (border-2 border-dashed border-slate-300 bg-slate-50/50 hover:bg-slate-100 transition-colors flex flex-col items-center justify-center py-12 cursor-pointer)  
-      UploadCloudIcon (w-10 h-10 text-slate-400 mb-4)  
-      CardTitle (text-lg font-medium text-slate-700) \<- Static: "Drag & Drop Financial PDFs"  
-      CardDescription (text-sm text-slate-500) \<- Static: "Supported formats: .pdf, .csv up to 50MB"  
-      HiddenInput (type="file", accept=".pdf,.csv")  
-  QueueSection  
-    Tabs (defaultValue="REVIEW\_REQUIRED")  
-      TabsList (grid w-full grid-cols-3 max-w-md mb-4)  
-        TabsTrigger (value="REVIEW\_REQUIRED")  
-          Text \<- Static: "Needs Review"  
-          Badge (variant="warning", ml-2) \<- Mapped to \-\> Count(Docs where status \== REVIEW\_REQUIRED)  
-        TabsTrigger (value="PENDING\_EXTRACTION") \<- Static: "Processing"  
-        TabsTrigger (value="PROCESSED") \<- Static: "Completed"  
-      TabsContent (value="REVIEW\_REQUIRED")  
-        Table (bg-white border border-border rounded-md shadow-sm)  
-          TableHeader  
-            TableRow (bg-slate-50)  
-              TableHead \<- Static: "Document Name"  
-              TableHead \<- Static: "Uploaded At"  
-              TableHead \<- Static: "Status"  
-              TableHead (w-24 text-right) \<- Static: "Action"  
-          TableBody  
-            TableRow \<- Iterates over Document list  
-              TableCell (font-medium flex items-center space-x-2)  
-                FileTextIcon (w-4 h-4 text-slate-400)  
-                Text \<- Mapped to \-\> Document.fileName  
-              TableCell (text-slate-500) \<- Mapped to \-\> Document.createdAt (Formatted Relative)  
-              TableCell  
-                Badge (variant="warning") \<- Mapped to \-\> Document.status (REVIEW\_REQUIRED)  
-              TableCell (text-right)  
-                Button (variant="default", size="sm") \<- Triggers ReviewScreen  
-                  Text \<- Static: "Review"
+AppLayout (flex, h-screen, bg-slate-50, overflow-hidden)
 
-  // Modals & Overlays  
-  ConsentDialog (Triggered on file drop before upload)  
-    AlertDialog  
-      AlertDialogContent  
-        AlertDialogHeader  
-          AlertDialogTitle (flex items-center space-x-2)  
-            AlertTriangleIcon (text-destructive)  
-            Text \<- Static: "Data Privacy Consent Required"  
-          AlertDialogDescription (space-y-4)  
-            Paragraph \<- Static: "To extract data, this document will be securely transmitted to our LLM partner (OpenAI/Anthropic). V1 does not utilize proprietary PII redaction."  
-            Paragraph \<- Static: "By proceeding, you acknowledge that no PII has been manually redacted. Our partner SLA guarantees zero data retention and strictly excludes payload data from future model training."  
-        AlertDialogFooter  
-          Button (variant="outline") \<- Cancels upload  
-          Button (variant="destructive") \<- Approves upload, sets State: UPLOADING
+  ├─ Sidebar (persistent)
 
-  ReviewFullScreenModal (Triggered via "Review" button)  
-    Dialog (full-screen w-screen h-screen m-0 p-0 rounded-none)  
-      DialogContent (flex h-full w-full max-w-none p-0 gap-0)   
-        DocumentViewerPane (w-1/2 bg-slate-900 border-r border-slate-700 p-4 flex flex-col)  
-          PdfToolbar (h-12 flex justify-between items-center text-slate-300)  
-          PdfCanvasWrapper (flex-1 bg-slate-800 rounded-md overflow-hidden) \<- Renders PDF Blob  
-        ExtractionFormPane (w-1/2 bg-white flex flex-col)  
-          PaneHeader (h-16 px-6 border-b border-border flex items-center justify-between)  
-            Title \<- Static: "Extracted Ghost Entry"  
-          FormScrollArea (flex-1 p-6 overflow-y-auto space-y-6)  
-            FormField \<- Mapped to \-\> GhostEntry.assetName  
-            FormField \<- Mapped to \-\> GhostEntry.totalValue  
-            FormField \<- Mapped to \-\> GhostEntry.effectiveDate  
-          PaneFooter (h-20 px-6 border-t border-border flex items-center justify-end space-x-4 bg-slate-50)  
-            Button (variant="ghost") \<- Static: "Reject Data"  
-            Button (variant="default") \<- Static: "Approve & Post to Ledger"
+  └─ MainContent (flex-1, flex-col, overflow-y-auto)
+
+       ├─ BreadcrumbNav (px-8, py-4, text-sm, text-slate-500)
+
+       │    └─ Link (href="/searcher/pipeline") \-\> Text ("\< Back to Pipeline")
+
+       │
+
+       ├─ DealHeader (px-8, py-6, bg-white, border-b, flex, justify-between, items-start)
+
+       │    ├─ TitleGroup (flex-col, gap-1)
+
+       │    │    ├─ PageTitle (text-3xl, font-bold, text-slate-900) \<- Mapped to \-\> Deal.Company.name
+
+       │    │    └─ Link (text-sm, text-blue-600, hover:underline) \<- Mapped to \-\> Deal.Company.domain
+
+       │    └─ ControlGroup (flex, gap-4, items-center)
+
+       │         ├─ Select \<- Mapped to \-\> Deal.stage
+
+       │         │    └─ SelectTrigger \-\> Value (e.g., "CIM Review")
+
+       │         └─ Card (bg-slate-50, border, p-1, rounded-lg, flex, items-center, gap-2)
+
+       │              ├─ Badge (variant dynamically mapped) \<- Mapped to \-\> Deal.visibilityTier
+
+       │              │    (If TIER\_1\_PRIVATE \-\> variant="secondary", text="Tier 1: Private")
+
+       │              │    (If TIER\_2\_SHARED \-\> variant="default", bg-emerald-600, text="Tier 2: Shared")
+
+       │              └─ Button (variant="ghost", size="sm") \-\> Text ("Change") \-\> Triggers VisibilityModal
+
+       │
+
+       └─ DealWorkspace (px-8, py-6, max-w-7xl, mx-auto, w-full)
+
+            └─ Tabs (defaultValue="overview", w-full)
+
+                 ├─ TabsList (grid, w-full max-w-md, grid-cols-3)
+
+                 │    ├─ TabsTrigger (value="overview") \-\> Text ("Overview")
+
+                 │    ├─ TabsTrigger (value="documents") \-\> Text ("Documents")
+
+                 │    └─ TabsTrigger (value="financials") \-\> Text ("Financials (AI)")
+
+                 │
+
+                 ├─ TabsContent (value="overview", mt-6, grid, grid-cols-1 md:grid-cols-3, gap-6)
+
+                 │    ├─ LeftColumn (col-span-2, flex-col, gap-6)
+
+                 │    │    ├─ Card (shadow-sm) \-\> Company Firmographics
+
+                 │    │    │    ├─ CardHeader \-\> CardTitle ("Company Details")
+
+                 │    │    │    └─ CardContent \-\> DataList (Industry, HQ, Employee Count) \<- Mapped to \-\> Deal.Company.\*
+
+                 │    │    └─ Card (shadow-sm) \-\> Quick Financials 
+
+                 │    │         ├─ CardHeader \-\> CardTitle ("Latest Extracted Metrics")
+
+                 │    │         └─ CardContent \-\> MetricsGrid (Revenue, Gross Margin, EBITDA) \<- Mapped to \-\> OCR Output DB Table
+
+                 │    │
+
+                 │    └─ RightColumn (col-span-1)
+
+                 │         └─ Card (shadow-sm, h-full)
+
+                 │              ├─ CardHeader \-\> CardTitle ("Activity Feed")
+
+                 │              └─ CardContent (flex-col, gap-4)
+
+                 │                   ├─ ScrollArea (h-96)
+
+                 │                   │    └─ FeedItem (flex, gap-3) \<- Mapped to \-\> Array\[ActivityLog\]
+
+                 │                   │         ├─ Avatar (size="sm")
+
+                 │                   │         └─ TextBlock (Action description \+ Relative Time)
+
+                 │                   └─ Textarea (placeholder="Leave a note...")
+
+                 │
+
+                 ├─ TabsContent (value="documents")
+
+                 │    └─ DocumentManager (DataTable of associated PDFs/Excel with per-document visibility toggles)
+
+                 │
+
+                 └─ TabsContent (value="financials")
+
+                      └─ EmptyState \-\> Button ("Launch AI OCR Extraction") \-\> Routes to Split-Screen OCR View
+
+*Contract Gap Note:* The exact firmographic fields (HQ, Industry, Employees) are assumed here. The DTO must extend the base Company model to include these enriched details, or the UI will only display the name and domain.
 
 #### **4\. Interactive States & Logic (Finite State Machine)**
 
-* **State: IDLE**  
-  * Dropzone is waiting. Tabs show current queue counts.  
-* **State: DRAGGING\_FILE**  
-  * **Event:** onDragEnter over DropzoneArea.  
-  * Logic: DropzoneArea border color changes to border-slate-900, background becomes bg-slate-100.  
-* **State: AWAITING\_CONSENT**  
-  * **Event:** onDrop triggers AlertDialog.  
-  * Logic: Upload does *not* hit the API yet. If canceled, queue clears. If accepted, transitions to UPLOADING.  
-* **State: EXTRACTING (Pending)**  
-  * Logic: Document row appears under the "Processing" tab. Status badge is bg-slate-100 text-slate-600 with an inline SpinnerIcon.  
-  * **Event:** Webhook receives payload from LLM API \-\> Transitions to REVIEW\_READY.  
-* **State: REVIEW\_READY**  
-  * Logic: Document moves to "Needs Review" tab. Status badge is Yellow.  
-* **State: REVIEW\_ACTIVE (Split-Screen)**  
-  * **Event:** User clicks "Review".  
-  * Logic: If user alters a field in the ExtractionFormPane, flag the field visually (e.g., border-amber-500) to indicate manual override of AI data.  
-* **State: PROCESSED (Approved)**  
-  * **Event:** User clicks "Approve & Post to Ledger".  
-  * Logic: API call converts Ghost Entry into a permanent Asset/Valuation. Modal closes. Document row moves to "Completed" tab with a Green badge.
+**State Machine for Toggling Privacy (The Most Critical Action):**
+
+* **State: IDLE** \-\> Deal is TIER\_1\_PRIVATE.  
+* **Event: CLICK\_CHANGE\_TIER** \-\> User clicks the "Change" button next to the Tier badge.  
+* **State: MODAL\_OPEN** \-\> AlertDialog component mounts.  
+  * *Warning UI:* "You are about to move this deal to Tier 2 (Shared). This will alert connected Investor Workspaces and expose the Deal Name, Domain, and public documents. This action cannot be easily undone."  
+* **Event: CONFIRM\_UPGRADE** \-\> User types the company name to confirm and clicks "Upgrade to Tier 2".  
+* **State: MUTATING** \-\> Trigger PATCH /api/deals/{id} with { visibilityTier: "TIER\_2\_SHARED" }. Button shows loading spinner.  
+  * *(If Success)* \-\> **State: SUCCESS**. Close modal. Badge updates to green TIER\_2\_SHARED. Success Toast fires. (Backend asynchronously triggers the SendGrid "New Deal Shared" email debounce logic outlined in the Idea doc).  
+  * *(If Error)* \-\> Show Destructive Toast. Keep modal open.
 
 #### **5\. Microcopy Specifications**
 
-| Component ID | Scenario / State | Actual Text Content |
-| :---- | :---- | :---- |
-| AlertDialogTitle | Privacy Consent Modal | "Data Privacy Consent Required" |
-| AlertDialogDescription | Privacy Consent Modal | "To extract data, this document will be securely transmitted to an external LLM partner. V1 does not utilize proprietary PII redaction. Our partner SLA guarantees zero data retention and strictly excludes payload data from future model training. Do you consent to proceed?" |
-| AlertDialogCancel | Cancel Upload | "Cancel" |
-| AlertDialogAction | Confirm Upload | "I Consent & Upload" |
-| TabsTrigger (Review) | Documents waiting | "Needs Review" |
-| EmptyState (Review Tab) | Zero documents | "You're all caught up. No documents require manual review." |
-| SubmitButton (Review) | Approve Form | "Approve & Post to Ledger" |
+| Component ID | Text Content |
+| :---- | :---- |
+| Deal.Header.Tier1 | Tier 1 (Private) |
+| Deal.Header.Tier2 | Tier 2 (Shared) |
+| Deal.Tabs.Overview | Overview |
+| Deal.Tabs.Docs | Documents |
+| Deal.Tabs.Financials | Financials (AI) |
+| Modal.TierUpgrade.Title | Upgrade to Tier 2 (Shared)? |
+| Modal.TierUpgrade.Warning | Upgrading this deal will make its sanitized profile and public documents visible to your connected Investors. They will be notified of this change. |
+| Toast.Success.TierChanged | Deal visibility updated to Tier 2\. Investors have been notified. |
 
 ---
 
-### **5\. Billing & Overage Resolution State Specification**
+### **6\. AI P\&L Extraction (Split-Screen Validation) Specification**
 
 #### **1\. The Mental Model**
 
-This is the platform's "digital velvet rope." The mental model here is firm but hospitable enforcement. Because Vexel caters to UHNW individuals, we never want them to feel like their data is held hostage. Therefore, the UI must clearly communicate *Read/Update Immunity*—they can always view, edit, and delete their existing assets, and the AI Airlock continues to function. Only structural expansion (adding new assets) is paused until the overage is resolved.
+The user must perceive this screen as a **Focused Validation Workspace**. To minimize context switching, we remove the global navigation sidebar entirely. The mental model is an "Audit." The left side represents the *Ground Truth* (the original unstructured document), and the right side represents the *Proposed Structured Data*. The user acts as an editor, cross-referencing the AI's guesses, correcting them, and firmly committing them to the database.
 
 #### **2\. The User Journey (Step-by-Step)**
 
-1. **The Trigger:** The tenant exceeds their plan's asset limit, setting the overageStartDate.  
-2. **The Grace Period (Days 1-30):** The user logs in and sees a dismissible yellow Warning banner at the top of the app. All functionality remains active.  
-3. **The Hard Lock (Day 31+):** The user logs in and sees a persistent, non-dismissible red Destructive banner.  
-4. **The Block:** The user attempts to click "Add Asset" in the Asset Directory. The button is visually disabled and displays a padlock icon.  
-5. **The Resolution:** The user clicks "Upgrade Plan" inside the banner, opening a Stripe Checkout session.  
-6. **The Webhook Delay (Edge Case):** The user completes checkout and returns to Vexel, but the banner is still there because the webhook is delayed.  
-7. **The Manual Sync:** The user clicks "Check Payment Status" inside the banner. The system forces a synchronous check, clears the overage, and instantly restores the UI to its normal state.
+1. User clicks "Launch AI OCR Extraction" from the Deal Detail's *Financials* tab.  
+2. The user is routed to /searcher/pipeline/deal/{id}/extract/{documentId}.  
+3. The layout expands to a full-bleed split-screen view. The target PDF loads on the left.  
+4. The system triggers the AI extraction prompt via the backend. The right panel shows a skeleton loading state ("Analyzing Financials...").  
+5. The extracted fields (Revenue, Gross Margin, EBITDA) populate the right panel.  
+6. The user clicks an extracted value. The left-side PDF viewer automatically scrolls to the exact page and highlights the bounding box of the source text.  
+7. The user reviews each field, manually correcting any hallucinated numbers.  
+8. The user clicks "+ Add Custom Metric" to track a deal-specific data point (e.g., "CapEx" or "Owner Add-backs" leveraging the JSONB database flexibility).  
+9. The user clicks "Confirm & Save", permanently writing the structured data to the Deal record and returning to the Deal Detail page.
 
 #### **3\. Visual Layout & Component Mapping**
 
-**A. ASCII Wireframe (Dashboard during Hard Lock)**
+**A. ASCII Wireframe**
 
 Plaintext
 
-\+-----------------------------------------------------------------------------+  
-|  \[\!\] Action Required: Asset limit exceeded. Structural additions are locked.|  
-|      You maintain full access to existing data.                             |  
-|      \[ Upgrade Plan \]  \[ Check Payment Status \]                             |  
-\+-----------------------------------------------------------------------------+  
-|  \[Sidebar Navigation\]  |  Asset Directory                         \[P Add\]   |  
-|                        |                                           ^        |  
-|                        |                                        Disabled    |  
-|                        |                                                    |  
-|                        |  \+----------------------------------------------+  |  
-|                        |  |   | Name             | Type  | Own % | Value |  |  
-|                        |  \+----------------------------------------------+  |  
-|                        |  | v | Alpha Trust (G1) | Trust | 100%  | $ 85M |  |  
-|                        |  \+----------------------------------------------+  |  
-\+-----------------------------------------------------------------------------+
+\+-----------------------------------------------------------------------+
+
+| \< Back to Deal |  Document: CIM\_2023\_Final.pdf        \[ Confirm & Save\] |
+
+| \======================================================================= |
+
+| \<\< PDF VIEWER PANEL \>\>              | \<\< VALIDATION PANEL \>\>          |
+
+|                                     |                                 |
+
+| ... Financial Highlights ...        | Extracted Metrics (FY2023)      |
+
+| Revenue for 2023 was $12.5M         | \+-----------------------------+ |
+
+| with a gross margin of 40%.         | | Revenue              \[ 98%\] | |
+
+| EBITDA reached $5.0M due to...      | | \[ $12,500,000      \] \[  ✓ \] | |
+
+|                                     | \+-----------------------------+ |
+
+|                                     | \+-----------------------------+ |
+
+|                                     | | Gross Margin         \[ 95%\] | |
+
+|                                     | | \[ 40%              \] \[  ✓ \] | |
+
+|                                     | \+-----------------------------+ |
+
+|                                     | \+-----------------------------+ |
+
+|                                     | | EBITDA               \[ 60%\] | |
+
+|                                     | | \[ $5,000,000       \] \[  ✓ \] | |
+
+|                                     | \+-----------------------------+ |
+
+|                                     |                                 |
+
+| \< Page 14 of 50 \>      \[Zoom \+ \-\]   | \[ \+ Add Custom Metric (JSON) \]  |
+
+\+-----------------------------------------------------------------------+
 
 **B. The Component Tree (The "Blueprints")**
 
 Plaintext
 
-AppLayoutWrapper (flex flex-col h-screen)  
-  GlobalBillingAlert (Renders conditionally based on Tenant.overageStartDate)  
-    Alert (variant="destructive", className="rounded-none border-x-0 border-t-0 flex items-center justify-between px-8 py-3")  
-      AlertContentWrapper (flex items-center space-x-4)  
-        AlertTriangleIcon (w-5 h-5 text-destructive-foreground)  
-        AlertTextContainer (flex flex-col)  
-          AlertTitle (text-sm font-semibold) \<- Static: "Plan Limit Exceeded (Action Required)"  
-          AlertDescription (text-sm opacity-90) \<- Mapped to \-\> Days elapsed since Tenant.overageStartDate  
-      AlertActionsWrapper (flex space-x-3)  
-        Button (variant="outline", size="sm", className="bg-transparent border-current hover:bg-white/20")  
-          RefreshCwIcon (w-3 h-3 mr-2, animate-spin if State \== REFRESHING)  
-          Text \<- Static: "Check Payment Status"  
-        Button (variant="secondary", size="sm")  
-          Text \<- Static: "Upgrade Plan"  
-    
-  MainAppContent (flex-1 flex overflow-hidden)  
-    Sidebar   
-    PageContainer (p-8)  
-      PageHeader  
-        HeaderActions  
-          Button (disabled={isHardLocked}) \<- isHardLocked derived from (Now \- Tenant.overageStartDate \> 30 days)  
-            LockIcon (w-4 h-4 mr-2, rendered only if isHardLocked \== true)  
-            Text \<- Static: "Add Asset"  
-      // ... Rest of Page Content
+AppLayout (flex, flex-col, h-screen, bg-slate-50, overflow-hidden)
 
-*Responsiveness:* On mobile (\< md), the global alert banner stacks its content. The title and description appear on top, with the two action buttons spanning the full width side-by-side below the text.
+  ├─ ExtractionHeader (h-16, flex, items-center, justify-between, px-6, bg-white, border-b, shrink-0)
+
+  │    ├─ LeftGroup (flex, items-center, gap-4)
+
+  │    │    ├─ Button (variant="ghost", size="sm") \-\> Link ("\< Back")
+
+  │    │    ├─ Separator (orientation="vertical", h-6)
+
+  │    │    └─ Text (font-medium, text-slate-900) \<- Mapped to \-\> Document.fileName
+
+  │    └─ RightGroup (flex, items-center, gap-4)
+
+  │         └─ Button (variant="default", bg-slate-900)
+
+  │              ├─ SaveIcon
+
+  │              └─ Text ("Confirm & Save")
+
+  │
+
+  └─ ResizablePanelGroup (direction="horizontal", w-full, flex-1)
+
+       ├─ ResizablePanel (defaultSize=60, minSize=40) \-\> The Ground Truth
+
+       │    └─ PDFViewerContainer (h-full, bg-slate-200/50, flex-col, relative)
+
+       │         ├─ PDFDocument (react-pdf wrapper) \<- Mapped to \-\> Document.fileUrl
+
+       │         │    └─ HighlightOverlay (absolute, mix-blend-multiply, bg-yellow-200) \<- Mapped to \-\> AI\_BoundingBox\_Coordinates
+
+       │         └─ PDFToolbar (absolute, bottom-6, left-1/2, \-translate-x-1/2, flex, gap-2, bg-white, p-1, rounded-full, shadow-md)
+
+       │              ├─ Button (variant="ghost", size="icon") \-\> ZoomOut
+
+       │              ├─ Text \-\> "Page {current} of {total}"
+
+       │              └─ Button (variant="ghost", size="icon") \-\> ZoomIn
+
+       │
+
+       ├─ ResizableHandle (w-2, bg-slate-200, hover:bg-slate-300, cursor-col-resize, transition-colors)
+
+       │
+
+       └─ ResizablePanel (defaultSize=40, minSize=30) \-\> The Validation Form
+
+            └─ ScrollArea (h-full, bg-white, p-6)
+
+                 ├─ PanelHeader (mb-6)
+
+                 │    ├─ Title (text-lg, font-semibold) \-\> "Extracted Metrics"
+
+                 │    └─ Text (text-sm, text-slate-500) \-\> "Review and correct AI findings."
+
+                 │
+
+                 ├─ Form (flex-col, gap-6)
+
+                 │    ├─ ExtractionFieldCard (border, rounded-lg, p-4, flex-col, gap-3) \<- Mapped to \-\> DealFinancials.revenue
+
+                 │    │    ├─ FieldHeader (flex, justify-between)
+
+                 │    │    │    ├─ Label ("Revenue")
+
+                 │    │    │    └─ Badge (variant="outline", text-emerald-600) \<- Mapped to \-\> AI\_ConfidenceScore ("98% Match")
+
+                 │    │    └─ FieldInputGroup (flex, gap-2)
+
+                 │    │         ├─ Input (type="text", flex-1) \<- Mapped to \-\> Extracted Value ($12,500,000)
+
+                 │    │         └─ Button (variant="outline", size="icon", text-slate-400, hover:text-emerald-600) \-\> CheckIcon (Approve)
+
+                 │    │
+
+                 │    ├─ ExtractionFieldCard \<- Mapped to \-\> DealFinancials.grossMargin
+
+                 │    ├─ ExtractionFieldCard \<- Mapped to \-\> DealFinancials.ebitda
+
+                 │    │
+
+                 │    └─ DynamicFieldSection (mt-4, pt-4, border-t)
+
+                 │         ├─ Title (text-sm, font-medium, text-slate-700, mb-4) \-\> "Custom Metrics"
+
+                 │         ├─ CustomFieldList (renders mapped key-value pairs) \<- Mapped to \-\> DealFinancials.customMetrics (JSONB)
+
+                 │         └─ Button (variant="dashed", w-full, text-slate-500)
+
+                 │              ├─ PlusIcon
+
+                 │              └─ Text ("Add Custom Metric")
+
+*Contract Gap Note:* The functional spec indicates dynamic extraction needs (JSONB). The API DTO must structure the AI response to include bounding\_box coordinates (page number, x, y, width, height) alongside the extracted text and confidence\_score so the UI can draw the highlight overlay over the PDF.
 
 #### **4\. Interactive States & Logic (Finite State Machine)**
 
-* **State: GRACE\_PERIOD (1 to 30 Days)**  
-  * Logic: Tenant.overageStartDate is set, but \< 30 days ago.  
-  * UI: Alert variant is warning (Yellow). "Add Asset" buttons are fully functional. The Alert includes a dismiss button (X) for the current session.  
-* **State: HARD\_LOCK (Day 31+)**  
-  * Logic: Tenant.overageStartDate is \> 30 days ago.  
-  * UI: Alert variant is destructive (Red). No dismiss button. All POST /assets triggers in the UI (e.g., "Add Asset" buttons, "Add Child Asset" dropdown items) are explicitly disabled (disabled=true) and show a LockIcon.  
-* **State: REFRESHING\_STATUS**  
-  * **Event:** User clicks "Check Payment Status".  
-  * Logic: Button enters loading state (spinner). Dispatches a synchronous API call to verify the Stripe Subscription status.  
-  * Transition: If Stripe confirms payment \-\> **State: RESOLVED**. If no payment found \-\> Toast notification ("No recent payment detected").  
-* **State: RESOLVED (Happy Path / Self-Correction)**  
-  * **Event:** Webhook fires successfully OR User clicks "Check Payment Status" successfully OR User deletes an asset to drop below the plan limit.  
-  * Logic: System detects Tenant is within limits. Tenant.overageStartDate is cleared.  
-  * UI: Global alert unmounts entirely. "Add Asset" buttons re-enable dynamically without requiring a page refresh.
+* **State: INITIALIZING** \-\> PDF is downloading to the client. Form panel shows generic Skeleton loading.  
+* **State: EXTRACTING\_AI** \-\> PDF is rendered. Backend is calling OpenAI (or similar) microservice.  
+  * *UI:* The validation panel shows a specialized LoadingState: A spinning BotIcon and text "Analyzing document structure and extracting P\&L data... This may take up to 30 seconds."  
+* **State: REVIEW\_PENDING** \-\> AI returns payload. Inputs are populated. "Confirm & Save" button is disabled until all core fields are either approved or manually edited.  
+* **Event: FIELD\_FOCUS** \-\> User clicks inside the Input for Revenue.  
+  * *Logic:* The PDF viewer programmatically jumps to the corresponding page, and a yellow HighlightOverlay div fades in over the source text.  
+* **Event: FIELD\_APPROVE** \-\> User clicks the CheckIcon next to an input.  
+  * *UI:* The CheckIcon turns solid green. The input border turns border-emerald-500.  
+* **State: MUTATING (Save)** \-\> User clicks "Confirm & Save".  
+  * *Logic:* Triggers PUT /api/deals/{id}/financials containing the verified standard columns and the JSONB custom metrics. Shows saving spinner. On success, redirects to /searcher/pipeline/deal/{id}.
 
 #### **5\. Microcopy Specifications**
 
-| Component ID | Scenario / State | Actual Text Content |
-| :---- | :---- | :---- |
-| AlertTitle | Hard Lock (Day 31+) | "Plan Limit Exceeded (Action Required)" |
-| AlertDescription | Hard Lock (Day 31+) | "Your 30-day grace period has expired. Structural additions (new assets/entities) are locked. You maintain full access to view, edit, or delete existing data." |
-| AlertTitle | Grace Period (Day 1-30) | "Approaching Plan Limit" |
-| AlertDescription | Grace Period (Day 1-30) | "You have exceeded your plan's asset limit. Please upgrade your plan within \[X\] days to prevent structural locks." |
-| ActionButton (Upgrade) | Any Overage State | "Upgrade Plan" |
-| ActionButton (Refresh) | Any Overage State | "Check Payment Status" |
-| ToastNotification | Manual Refresh Fails | "No recent payment detected. If you just paid, please wait a moment and try again." |
+| Component ID | Text Content |
+| :---- | :---- |
+| Extraction.Header.Save | Confirm & Save |
+| Extraction.Panel.Title | Extracted Metrics |
+| Extraction.Panel.Subtitle | Please review and correct the AI findings against the source document. |
+| Extraction.Loading.Title | Analyzing Financials... |
+| Extraction.Loading.Body | Securely extracting P\&L data. This usually takes 10-30 seconds. |
+| Field.Revenue.Label | Revenue |
+| Field.GrossMargin.Label | Gross Margin |
+| Field.EBITDA.Label | EBITDA |
+| Field.Action.AddCustom | Add Custom Metric |
+| Tooltip.Confidence | AI Confidence Score. Lower scores require careful manual review. |
+| Toast.Success.Save | Financial data validated and saved to Deal profile. |
 
 ---
 
-This concludes the deep-dive UX/UI specifications for all 5 core flows requested based on the PRD and Domain Model.
+### **7\. Investor Portfolio Dashboard Specification**
+
+#### **1\. The Mental Model**
+
+The Investor Portfolio Dashboard acts as a **"Command Center" for capital deployment monitoring**. The mental model is an aggregated bird's-eye view. Investors typically back multiple Searchers simultaneously. This screen answers their primary questions: *Which of my Searchers are actively finding deals? Which deals have reached the LOI stage? What new documents have been shared with me today?* Crucially, the UI must reinforce that this is a *read-only* environment regarding Deal data. They cannot edit a Deal; they can only observe what the Searcher has explicitly designated as TIER\_2\_SHARED.
+
+#### **2\. The User Journey (Step-by-Step)**
+
+1. An Investor logs in and is routed to /investor/dashboard.  
+2. The user scans the top KPI cards to see the health of their entire network (e.g., "5 Active Searchers", "12 Shared Deals", "3 Active LOIs").  
+3. The user scrolls down to the "Portfolio Searchers" table to see a breakdown of pipeline health per individual Searcher Workspace.  
+4. The user checks the right-hand "Recent Network Activity" feed to see a timeline of newly shared documents or deals that have progressed in stage.  
+5. The user clicks on a specific Deal name in the activity feed, navigating them to the read-only Investor Deal View.
+
+#### **3\. Visual Layout & Component Mapping**
+
+**A. ASCII Wireframe**
+
+Plaintext
+
+\+---------+-------------------------------------------------------------+
+
+| Sidebar | Portfolio Overview                        \[Invite Searcher\] |
+
+|         |                                                             |
+
+| \[Home\]  | \+-----------+ \+-----------+ \+-----------+ \+---------------+ |
+
+| \[Netwk\] | | Active    | | Total     | | Deals at  | | New Docs      | |
+
+| \[Deals\] | | Searchers | | Shared    | | LOI / DD  | | (This Week)   | |
+
+| \[Docs\]  | | 5         | | Deals: 12 | | 3         | | 8             | |
+
+|         | \+-----------+ \+-----------+ \+-----------+ \+---------------+ |
+
+|         |                                                             |
+
+|         | \+-----------------------------------+ \+-------------------+ |
+
+|         | | Portfolio Searchers               | | Network Activity  | |
+
+|         | |-----------------------------------| |                   | |
+
+|         | | Searcher        | Shared | Status | | \* Blue Ocean      | |
+
+|         | |-----------------+--------+--------| |   shared CIM for  | |
+
+|         | | Blue Ocean      | 4      | Active | |   Acme Logistics  | |
+
+|         | | Apex Acq.       | 7      | Active | | \* Apex Acq.       | |
+
+|         | | Delta Search    | 1      | Active | |   moved Beta Co   | |
+
+|         | \+-----------------------------------+ |   to LOI Issued   | |
+
+|         |                                       \+-------------------+ |
+
+\+---------+-------------------------------------------------------------+
+
+**B. The Component Tree (The "Blueprints")**
+
+Plaintext
+
+AppLayout (flex, h-screen, bg-slate-50, overflow-hidden)
+
+  ├─ Sidebar (w-64, flex-col, border-r, border-slate-200, bg-slate-900, text-white, hidden md:flex) \-\> Investor OS gets a dark sidebar to visually distinguish it from the Searcher OS.
+
+  │    └─ SidebarNav (links to /dashboard, /network, /shared-deals)
+
+  └─ MainContent (flex-1, flex-col, overflow-y-auto)
+
+       ├─ Topbar (h-16, flex, items-center, justify-between, px-8, border-b, bg-white)
+
+       │    ├─ PageTitle (text-xl, font-semibold, text-slate-900)
+
+       │    └─ Button (variant="default") \-\> Text ("Invite Searcher") \-\> Triggers InviteModal
+
+       └─ PageContainer (p-8, max-w-7xl, mx-auto, w-full, flex-col, gap-8)
+
+            ├─ MetricsGrid (grid, grid-cols-1 md:grid-cols-2 lg:grid-cols-4, gap-4)
+
+            │    ├─ Card (bg-white)
+
+            │    │    ├─ CardHeader \-\> CardTitle ("Active Searchers")
+
+            │    │    └─ CardContent \-\> Text (text-2xl) \<- Mapped to \-\> Count(NetworkConnection where status='ACTIVE')
+
+            │    ├─ Card (bg-white)
+
+            │    │    ├─ CardHeader \-\> CardTitle ("Total Shared Deals")
+
+            │    │    └─ CardContent \-\> Text \<- Mapped to \-\> Count(Deal where visibilityTier='TIER\_2\_SHARED')
+
+            │    ├─ Card (bg-white)
+
+            │    │    ├─ CardHeader \-\> CardTitle ("Deals in LOI/DD")
+
+            │    │    └─ CardContent \-\> Text \<- Mapped to \-\> Count(Deal where stage IN \[LOI\_ISSUED, DUE\_DILIGENCE\] AND visibilityTier='TIER\_2\_SHARED')
+
+            │    └─ Card (bg-white)
+
+            │         ├─ CardHeader \-\> CardTitle ("Recent Documents")
+
+            │         └─ CardContent \-\> Text \<- Mapped to \-\> Count(Documents shared in last 7 days)
+
+            │
+
+            └─ DashboardContentGrid (grid, grid-cols-1 lg:grid-cols-3, gap-6)
+
+                 ├─ PortfolioTableWrapper (col-span-2, flex-col, gap-4)
+
+                 │    └─ Card (bg-white, shadow-sm)
+
+                 │         ├─ CardHeader \-\> CardTitle ("Connected Searchers")
+
+                 │         └─ CardContent (p-0)
+
+                 │              └─ Table (w-full)
+
+                 │                   ├─ TableHeader (bg-slate-50/50)
+
+                 │                   │    └─ TableRow \-\> TableHead ("Workspace"), TableHead ("Shared Deals"), TableHead ("Status")
+
+                 │                   └─ TableBody
+
+                 │                        └─ TableRow (hover:bg-slate-50, cursor-pointer) \<- Mapped to \-\> Array\[NetworkConnection\]
+
+                 │                             ├─ TableCell (font-medium) \<- Mapped to \-\> NetworkConnection.SearcherWorkspace.name
+
+                 │                             ├─ TableCell \<- Mapped to \-\> Count(SearcherWorkspace.Deals where visibilityTier='TIER\_2\_SHARED')
+
+                 │                             └─ TableCell \-\> Badge (variant="success") \<- Mapped to \-\> NetworkConnection.status
+
+                 │
+
+                 └─ ActivityFeedWrapper (col-span-1)
+
+                      └─ Card (bg-white, shadow-sm, h-full, min-h-\[400px\])
+
+                           ├─ CardHeader \-\> CardTitle ("Recent Network Activity")
+
+                           └─ CardContent
+
+                                └─ ScrollArea (h-\[400px\], pr-4)
+
+                                     └─ FeedList (flex-col, gap-4)
+
+                                          └─ FeedItem (flex, gap-3, relative) \<- Mapped to \-\> Array\[ActivityLog\] (Filtered by TIER\_2 permissions)
+
+                                               ├─ TimelineConnector (absolute, left-4, top-8, bottom-0, w-px, bg-slate-200)
+
+                                               ├─ Avatar (size="sm", bg-slate-100) \-\> BuildingIcon
+
+                                               └─ TextBlock (flex-col)
+
+                                                    ├─ Text (text-sm, text-slate-900) \<- Mapped to \-\> ActivityLog.description ("Blue Ocean shared CIM for Acme Corp")
+
+                                                    └─ Text (text-xs, text-slate-500) \<- Mapped to \-\> ActivityLog.createdAt (Relative time format)
+
+*Contract Gap Note:* The schema defines a relationship between Workspaces, but an explicit ActivityLog or Audit trail table wasn't in the provided snippet, though the "Idea" document mentions transaction emails and alerting. The backend must provide an aggregated timeline DTO of events explicitly filtered to ensure no TIER\_1\_PRIVATE events leak into this view.
+
+#### **4\. Interactive States & Logic (Finite State Machine)**
+
+* **State: INITIAL\_LOAD** \-\> Fetching Investor Dashboard DTO. Skeletons render across the MetricsGrid, Table, and Feed.  
+* **State: LOADED\_EMPTY\_NETWORK** \-\> The Investor has zero NetworkConnection records.  
+  * *UI:* The dashboard hides the Table and Feed. Shows a prominent EmptyState component: "Welcome to Ceeq. You are currently not connected to any Searcher Workspaces." Action Button: "Invite a Searcher".  
+* **State: LOADED\_DATA** \-\> Normal rendering.  
+* **Interaction Logic (Row Click):** Clicking a TableRow in the Connected Searchers list triggers Next.js router push( /investor/network/searcher/${workspaceId} ) to view that specific searcher's dedicated pipeline.
+
+#### **5\. Microcopy Specifications**
+
+| Component ID | Text Content |
+| :---- | :---- |
+| InvDashboard.Title | Portfolio Overview |
+| InvDashboard.Action.Invite | Invite Searcher |
+| InvMetric.ActiveSearchers | Connected Searchers |
+| InvMetric.TotalShared | Total Shared Deals |
+| InvMetric.LateStage | Deals in LOI / DD |
+| InvTable.Title | Connected Searchers |
+| InvFeed.Title | Recent Network Activity |
+| InvEmptyState.Title | Build your network |
+| InvEmptyState.Body | Invite Searchers to connect their workspaces with your fund to start receiving deal flow and standardized financial metrics in real-time. |
+
+---
+
+# **Ceeq: UX and Design Spec**
+
+Excellent. We have reached the final screen in our defined scope: the **Deal Flow Network Feed** for the Investor OS.
+
+This screen is the primary value driver for the Investor. It is where the cryptographic privacy architecture pays off, surfacing a curated stream of high-quality, standardized deal flow from their network of Searchers.
+
+---
+
+### **8\. Deal Flow Network Feed Specification**
+
+#### **1\. The Mental Model**
+
+The mental model is an **Exclusive, Curated Marketplace Feed**. Unlike the Searcher's Pipeline (which is a tactical Kanban board for moving deals), the Investor's Feed is a consumption-first interface. It resembles a high-end real estate listing or an AngelList feed. Every card represents a TIER\_2\_SHARED deal. Crucially, the UI must emphasize the *source* (Which Searcher is working this?) and the *standardized financial health* (The AI-extracted OCR metrics). It is strictly Read-Only.
+
+#### **2\. The User Journey (Step-by-Step)**
+
+1. User navigates to /investor/deals via the dark Investor Sidebar.  
+2. The screen presents a scrolling grid of Deal Cards, sorted by most recently updated.  
+3. The user utilizes the top FilterBar to narrow the feed (e.g., "Show me only Deals in the 'LOI Issued' stage" or "Only deals from 'Blue Ocean Search'").  
+4. The user scans a Deal Card, immediately noting the AI-extracted Revenue and EBITDA figures presented in a standardized format.  
+5. The user clicks "View Deal Room" on a specific card.  
+6. A Sheet component (Side Drawer) slides in from the right, displaying the read-only Deal Profile, including the firmographics and any Investor-visible (isPublic: true) documents like the CIM.
+
+#### **3\. Visual Layout & Component Mapping**
+
+**A. ASCII Wireframe**
+
+Plaintext
+
+\+---------+-------------------------------------------------------------+
+
+| Sidebar | Network Deal Flow                                           |
+
+|         |                                                             |
+
+| \[Home\]  | Filters: \[ All Searchers v \] \[ All Stages v \] \[ Sort: New \] |
+
+| \[Netwk\] | \=========================================================== |
+
+| \[Deals\] |                                                             |
+
+| \[Docs\]  | \+-------------------------+ \+-----------------------------+ |
+
+|         | | Acme Logistics          | | Beta Co                     | |
+
+|         | | Searcher: Blue Ocean    | | Searcher: Apex Acq.         | |
+
+|         | | Stage: CIM Review       | | Stage: LOI Issued           | |
+
+|         | |-------------------------| |-----------------------------| |
+
+|         | | Est. Rev: $12.5M        | | Est. Rev: $8.2M             | |
+
+|         | | EBITDA:   $5.0M         | | EBITDA:   $1.1M             | |
+
+|         | | Margin:   40%           | | Margin:   15%               | |
+
+|         | |-------------------------| |-----------------------------| |
+
+|         | | \[ View Deal Room \-\> \]   | | \[ View Deal Room \-\> \]       | |
+
+|         | \+-------------------------+ \+-----------------------------+ |
+
+\+---------+-------------------------------------------------------------+
+
+**B. The Component Tree (The "Blueprints")**
+
+Plaintext
+
+AppLayout (flex, h-screen, bg-slate-50, overflow-hidden)
+
+  ├─ Sidebar (w-64, flex-col, bg-slate-900, text-white, hidden md:flex)
+
+  └─ MainContent (flex-1, flex-col, h-full)
+
+       ├─ PageHeader (h-16, flex, items-center, justify-between, px-8, bg-white, border-b, shrink-0)
+
+       │    └─ PageTitle (text-xl, font-semibold, text-slate-900)
+
+       │
+
+       ├─ FilterToolbar (px-8, py-4, flex, gap-4, border-b, bg-white, shrink-0)
+
+       │    ├─ Select \<- Mapped to \-\> Filter: searcherId (Array\[NetworkConnection.SearcherWorkspace\])
+
+       │    ├─ Select \<- Mapped to \-\> Filter: stage (DealStage Enum)
+
+       │    └─ Select \<- Mapped to \-\> Sort: updatedAt (DESC/ASC)
+
+       │
+
+       └─ ScrollArea (flex-1, p-8)
+
+            ├─ FeedGrid (grid, grid-cols-1 md:grid-cols-2 xl:grid-cols-3, gap-6)
+
+            │    └─ Card (bg-white, shadow-sm, hover:shadow-md, transition-shadow) \<- Mapped to \-\> Array\[Deal where visibilityTier='TIER\_2\_SHARED'\]
+
+            │         ├─ CardHeader (pb-4)
+
+            │         │    ├─ TopRow (flex, justify-between, items-start)
+
+            │         │    │    ├─ CardTitle (text-lg, font-bold) \<- Mapped to \-\> Deal.Company.name
+
+            │         │    │    └─ Badge (variant="secondary") \<- Mapped to \-\> Deal.stage
+
+            │         │    └─ SearcherAttribution (flex, items-center, gap-2, mt-2)
+
+            │         │         ├─ Avatar (size="xs")
+
+            │         │         └─ Text (text-sm, text-slate-500) \<- Mapped to \-\> "Sourced by {Deal.Workspace.name}"
+
+            │         │
+
+            │         ├─ CardContent (py-4, border-y, border-slate-100, bg-slate-50/50)
+
+            │         │    └─ MetricsGrid (grid, grid-cols-3, gap-2, text-center)
+
+            │         │         ├─ MetricItem
+
+            │         │         │    ├─ Label (text-xs, text-slate-500) \-\> "Revenue"
+
+            │         │         │    └─ Value (text-sm, font-semibold) \<- Mapped to \-\> Extracted DealFinancials.revenue
+
+            │         │         ├─ MetricItem \-\> "EBITDA" \<- Mapped to \-\> Extracted DealFinancials.ebitda
+
+            │         │         └─ MetricItem \-\> "Margin" \<- Mapped to \-\> Extracted DealFinancials.grossMargin
+
+            │         │
+
+            │         └─ CardFooter (pt-4)
+
+            │              └─ Button (variant="ghost", w-full, justify-between) \-\> Triggers DealDrawer(Deal.id)
+
+            │                   ├─ Text ("View Deal Room")
+
+            │                   └─ ArrowRightIcon (text-slate-400)
+
+            │
+
+            └─ DealDrawer (Sheet component, side="right", w-\[400px\] sm:w-\[540px\]) \<- Mounted outside the grid loop
+
+                 ├─ SheetHeader
+
+                 │    ├─ SheetTitle \<- Mapped to \-\> Deal.Company.name
+
+                 │    └─ SheetDescription \<- Mapped to \-\> "Managed by {Deal.Workspace.name}"
+
+                 └─ ScrollArea (h-full, mt-6, pr-4)
+
+                      ├─ Section (Firmographics) \-\> ReadOnly DataList
+
+                      ├─ Section (Financials) \-\> ReadOnly Metrics
+
+                      └─ Section (Documents)
+
+                           └─ DocumentList (Only renders where Document.isShared \== true)
+
+                                └─ DocumentItem (flex, justify-between)
+
+                                     ├─ Text \<- Mapped to \-\> Document.fileName
+
+                                     └─ Button (variant="outline", size="icon") \-\> DownloadIcon
+
+*Contract Gap Note:* The exact schema for DealFinancials isn't fully detailed in the snippet, but the OCR requirements assume it exists. If a Searcher has *not* run the OCR extraction yet, the MetricsGrid in the card must gracefully fall back to a "Data Pending Extraction" state rather than rendering empty or null values.
+
+#### **4\. Interactive States & Logic (Finite State Machine)**
+
+* **State: FETCHING** \-\> Initial load or when changing filters. Grid displays Skeleton cards.  
+* **State: LOADED\_EMPTY** \-\> No deals match the current filters, or no Searchers have shared deals yet.  
+  * *UI:* Empty state container displaying a FolderSearch icon. "No shared deals found. Adjust your filters or wait for your connected Searchers to upgrade deals to Tier 2."  
+* **State: IDLE** \-\> Data populated, user browsing.  
+* **Event: OPEN\_DEAL** \-\> User clicks "View Deal Room".  
+  * *Logic:* The DealDrawer (Sheet) state toggles to open=true. A secondary fetch might be required (GET /api/investor/deals/{id}) to load the deep document list if not included in the initial feed DTO.  
+* **Security Guardrail (API level, but reflected in UI):** The UI must completely omit any editing controls (No "Save", "Edit", or "Delete" buttons exist in this tree). The Investor is a viewer only.
+
+#### **5\. Microcopy Specifications**
+
+| Component ID | Text Content |
+| :---- | :---- |
+| Feed.Title | Network Deal Flow |
+| Feed.Filter.Searcher | All Searchers |
+| Feed.Filter.Stage | All Stages |
+| Card.Action.View | View Deal Room |
+| Card.Fallback.NoData | Financials Pending |
+| Drawer.Docs.Title | Shared Documents |
+| Drawer.Docs.Empty | No public documents have been shared for this deal yet. |
+| EmptyState.Feed | No deals available. Connected Searchers will appear here once they upgrade targets to Tier 2\. |
+
+---
+
+**Project Completion Summary**
+
+We have successfully mapped out the Global Design System and detailed the **8 core screens** required for Ceeq across both the Acquirer (Searcher) and Backer (Investor) experiences.
+
+By enforcing **Contract-Driven UI** and relying entirely on a strict component mapping system (shadcn/ui), your development team has a blueprint that bridges the complex cryptographic and domain logic directly into a highly accessible, production-ready frontend architecture.
+

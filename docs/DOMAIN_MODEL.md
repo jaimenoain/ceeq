@@ -1,20 +1,13 @@
 # **Ceeq: Domain Model**
 
-Based on your answers, I have made the following architectural decisions to optimally support Vexel's enterprise-grade requirements:
+## **1\. Data Contracts (The Schema)**
 
-1. **Tech Stack:** We will use **Prisma ORM (TypeScript)** backed by PostgreSQL. This provides unparalleled type safety and pairs perfectly with Zod for runtime validation.  
-2. **Audit Logs:** We will use a dedicated AuditLog table with a strictly typed JSONB payload to capture point-in-time state changes (Event Sourcing pattern).  
-3. **Vault Permissions:** We will decouple Roles from Cohorts. A User has a base Role (Admin, Principal, Controller) for system actions, and belongs to multiple Cohorts for granular Document Vault / Asset visibility.
-
-Here is the definitive Domain Manifest for Jules.
-
----
-
-### **1\. Data Contracts (The Schema)**
+Here is the definitive Prisma ORM schema. It enforces strict referential integrity, implements the global hashing strategy for collision detection , and properly isolates the raw "Universe" from the active Deal pipeline.
 
 Code snippet
 
-// schema.prisma  
+// schema.prisma
+
 generator client {  
   provider \= "prisma-client-js"  
 }
@@ -24,367 +17,406 @@ datasource db {
   url      \= env("DATABASE\_URL")  
 }
 
-enum RoleLevel {  
+// \================= ENUMS \=================
+
+enum WorkspaceType {  
+  SEARCHER  
+  INVESTOR  
+}
+
+enum SubscriptionPlan {  
+  FREE  
+  SEARCHER\_PRO  
+  INVESTOR\_PREMIUM  
+}
+
+enum Role {  
   ADMIN  
-  PRINCIPAL  
-  CONTROLLER  
+  ANALYST  
 }
 
-enum BillingStatus {  
+enum DealStage {  
+  INBOX  
+  NDA\_SIGNED  
+  CIM\_REVIEW  
+  LOI\_ISSUED  
+  DUE\_DILIGENCE  
+  CLOSED\_WON  
+}
+
+enum DealStatus {  
   ACTIVE  
-  PAST\_DUE  
-  FROZEN  
+  ARCHIVED  
+  LOST  
 }
 
-enum DocumentStatus {  
-  PENDING\_EXTRACTION  
-  REVIEW\_REQUIRED  
-  PROCESSED  
-  REJECTED  
+enum VisibilityTier {  
+  TIER\_1\_PRIVATE  
+  TIER\_2\_SHARED  
 }
 
-/// Represents an isolated family office or UHNW organization  
-model Tenant {  
-  id                 String        @id @default(dbgenerated("gen\_random\_uuid()")) @db.Uuid  
+enum SourcingStatus {  
+  UNTOUCHED  
+  IN\_SEQUENCE  
+  REPLIED  
+  ARCHIVED  
+  CONVERTED  
+}
+
+// \================= MODELS \=================
+
+/// Core multi-tenant container isolating Searchers and Investors.  
+model Workspace {  
+  id                 String           @id @default(uuid()) @db.Uuid  
+  workspaceType      WorkspaceType  
   name               String  
-  billingStatus      BillingStatus @default(ACTIVE)  
-  /// Tracks the exact timestamp when a user exceeded their asset limit (starts the 30-day grace period)  
-  overageStartDate   DateTime?  
+  stripeCustomerId   String?          @unique  
+  subscriptionPlan   SubscriptionPlan @default(FREE)  
+  createdAt          DateTime         @default(now())  
+  deletedAt          DateTime?        // Soft delete for GDPR/auditing  
     
   users              User\[\]  
-  cohorts            Cohort\[\]  
-  assets             Asset\[\]  
-  documents          AirlockDocument\[\]  
-  auditLogs          AuditLog\[\]
+  deals              Deal\[\]  
+  companies          Company\[\]  
+  sourcingTargets    SourcingTarget\[\]  
+  sponsoredLicenses  SponsoredLicense\[\] @relation("Sponsor")  
+  receivedLicenses   SponsoredLicense\[\] @relation("Recipient")
 
-  createdAt          DateTime      @default(now())  
-  updatedAt          DateTime      @updatedAt
-
-  @@index(\[billingStatus\])  
+  @@index(\[workspaceType\])  
 }
 
-/// Represents an authenticated individual within a Tenant  
+/// System actors (Searchers or Investors).   
 model User {  
-  id                 String        @id @default(dbgenerated("gen\_random\_uuid()")) @db.Uuid  
-  tenantId           String        @db.Uuid  
-  emailAddress       String        @unique  
-  passwordHash       String  
-  roleLevel          RoleLevel  
-  lastLoginTimestamp DateTime?  
+  id                 String    @id @default(uuid()) @db.Uuid  
+  workspaceId        String    @db.Uuid  
+  role               Role  
+  email              String    @unique  
+  firstName          String  
+  lastName           String  
+  linkedinUrl        String?  
+  emailNotifications Boolean   @default(true)  
     
-  tenant             Tenant        @relation(fields: \[tenantId\], references: \[id\], onDelete: Cascade)  
-  cohorts            UserCohort\[\]  
-  uploadedDocs       AirlockDocument\[\]  
-  auditLogs          AuditLog\[\]
+  workspace          Workspace @relation(fields: \[workspaceId\], references: \[id\])  
+  tasks              Task\[\]  
+  uploadedDocs       Document\[\]
 
-  createdAt          DateTime      @default(now())  
-  updatedAt          DateTime      @updatedAt
-
-  @@index(\[tenantId, emailAddress\])  
+  @@index(\[workspaceId, role\])  
 }
 
-/// Represents an RBAC grouping for document/asset visibility (e.g., "G2 Family Members")  
-model Cohort {  
-  id                 String        @id @default(dbgenerated("gen\_random\_uuid()")) @db.Uuid  
-  tenantId           String        @db.Uuid  
+/// Handles Investor-sponsored Pro seats for Searchers.  
+model SponsoredLicense {  
+  id                   String   @id @default(uuid()) @db.Uuid  
+  sponsorWorkspaceId   String   @db.Uuid  
+  recipientWorkspaceId String   @db.Uuid  
+  isActive             Boolean  @default(false)  
+    
+  sponsor              Workspace @relation("Sponsor", fields: \[sponsorWorkspaceId\], references: \[id\])  
+  recipient            Workspace @relation("Recipient", fields: \[recipientWorkspaceId\], references: \[id\])
+
+  @@unique(\[sponsorWorkspaceId, recipientWorkspaceId\])  
+}
+
+/// The "Universe": Top-of-funnel scraping and CSV targets.  
+model SourcingTarget {  
+  id                 String         @id @default(uuid()) @db.Uuid  
+  workspaceId        String         @db.Uuid  
+  domain             String         // E.g., acme.com  
   name               String  
+  industry           String?  
+  estimatedRevenue   Decimal?       @db.Decimal(15, 2\)  
+  estimatedMargins   Decimal?       @db.Decimal(5, 2\)  
+  fitScore           Int            @default(0)  
+  scoreMetadata      Json?          // Stores custom weights and variables  
+  status             SourcingStatus @default(UNTOUCHED)  
     
-  tenant             Tenant        @relation(fields: \[tenantId\], references: \[id\], onDelete: Cascade)  
-  users              UserCohort\[\]
+  workspace          Workspace      @relation(fields: \[workspaceId\], references: \[id\])
 
-  @@unique(\[tenantId, name\])  
+  @@unique(\[workspaceId, domain\])  
+  @@index(\[workspaceId, fitScore(sort: Desc)\])  
 }
 
-model UserCohort {  
-  userId             String        @db.Uuid  
-  cohortId           String        @db.Uuid
-
-  user               User          @relation(fields: \[userId\], references: \[id\], onDelete: Cascade)  
-  cohort             Cohort        @relation(fields: \[cohortId\], references: \[id\], onDelete: Cascade)
-
-  @@id(\[userId, cohortId\])  
-}
-
-/// Represents any financial holding or legal entity  
-model Asset {  
-  id                 String        @id @default(dbgenerated("gen\_random\_uuid()")) @db.Uuid  
-  tenantId           String        @db.Uuid  
+/// The "Core CRM": Qualified targets actively being worked or historically tracked.  
+model Company {  
+  id                 String    @id @default(uuid()) @db.Uuid  
+  workspaceId        String    @db.Uuid  
   name               String  
-  type               String        // e.g., 'REAL\_ESTATE', 'LLC', 'TRUST'  
-  totalValue         Decimal       @db.Decimal(19, 4\)
-
-  tenant             Tenant        @relation(fields: \[tenantId\], references: \[id\], onDelete: Cascade)  
-  ownedBy            EntityOwnership\[\] @relation("ChildEntity")  
-  owns               EntityOwnership\[\] @relation("ParentEntity")
-
-  @@index(\[tenantId\])  
-}
-
-/// Defines the temporal Cap Table and recursive ownership structure  
-model EntityOwnership {  
-  id                 String        @id @default(dbgenerated("gen\_random\_uuid()")) @db.Uuid  
-  parentAssetId      String        @db.Uuid  
-  childAssetId       String        @db.Uuid  
-  /// The percentage of the child owned by the parent (0.0000 to 100.0000)  
-  percentage         Decimal       @db.Decimal(7, 4\)  
-  /// Defines when this ownership state became active for temporal queries  
-  effectiveDate      DateTime      @db.Date  
+  domain             String  
+  /// Globally peppered SHA-256 hash for cross-workspace collision detection  
+  hashedDomain       String    @db.VarChar(64)   
+  industry           String?  
     
-  parentAsset        Asset         @relation("ParentEntity", fields: \[parentAssetId\], references: \[id\], onDelete: Cascade)  
-  childAsset         Asset         @relation("ChildEntity", fields: \[childAssetId\], references: \[id\], onDelete: Cascade)
+  workspace          Workspace @relation(fields: \[workspaceId\], references: \[id\])  
+  deals              Deal\[\]
 
-  @@unique(\[parentAssetId, childAssetId, effectiveDate\])  
-  @@index(\[effectiveDate\])  
+  @@unique(\[workspaceId, domain\])  
+  @@index(\[hashedDomain\]) // Crucial for rapid global collision lookups  
 }
 
-/// Airlock module: Secure document vault for AI processing  
-model AirlockDocument {  
-  id                 String        @id @default(dbgenerated("gen\_random\_uuid()")) @db.Uuid  
-  tenantId           String        @db.Uuid  
-  uploadedById       String        @db.Uuid  
-  fileUrl            String        // Encrypted S3/KMS URI  
-  status             DocumentStatus @default(PENDING\_EXTRACTION)  
+/// The Deal Container: The single source of truth for an acquisition attempt.  
+model Deal {  
+  id                 String         @id @default(uuid()) @db.Uuid  
+  workspaceId        String         @db.Uuid  
+  companyId          String         @db.Uuid  
+  stage              DealStage      @default(INBOX)  
+  status             DealStatus     @default(ACTIVE)  
+  visibilityTier     VisibilityTier @default(TIER\_1\_PRIVATE)  
+  createdAt          DateTime       @default(now())  
     
-  tenant             Tenant        @relation(fields: \[tenantId\], references: \[id\], onDelete: Cascade)  
-  uploadedBy         User          @relation(fields: \[uploadedById\], references: \[id\])
+  workspace          Workspace      @relation(fields: \[workspaceId\], references: \[id\])  
+  company            Company        @relation(fields: \[companyId\], references: \[id\])  
+  financials         FinancialRecord\[\]  
+  documents          Document\[\]  
+  tasks              Task\[\]
 
-  createdAt          DateTime      @default(now())
-
-  @@index(\[tenantId, status\])  
+  @@index(\[workspaceId, stage, status\])  
+  @@index(\[visibilityTier\]) // Crucial for Investor OS queries  
 }
 
-/// Cryptographically secure, append-only event sourcing table  
-model AuditLog {  
-  id                 String        @id @default(dbgenerated("gen\_random\_uuid()")) @db.Uuid  
-  tenantId           String        @db.Uuid  
-  userId             String        @db.Uuid  
-  action             String        // e.g., 'TASK\_RESOLVED', 'ASSET\_CREATED'  
-  entityType         String  
-  entityId           String        @db.Uuid  
-  /// Contains the diff or the snapshot of the entity at the time of the event  
-  payload            Json  
+/// Extracted financial data with Human-in-the-Loop validation status.  
+model FinancialRecord {  
+  id                 String    @id @default(uuid()) @db.Uuid  
+  dealId             String    @db.Uuid  
+  fiscalYear         Int  
+  revenue            Decimal?  @db.Decimal(15, 2\)  
+  ebitda             Decimal?  @db.Decimal(15, 2\)  
+  grossMargin        Decimal?  @db.Decimal(5, 2\)  
+  /// Flexible JSONB for custom add-backs, capex, etc.  
+  customMetrics      Json?       
+  isVerifiedByHuman  Boolean   @default(false)  
     
-  tenant             Tenant        @relation(fields: \[tenantId\], references: \[id\], onDelete: Cascade)  
-  user               User          @relation(fields: \[userId\], references: \[id\])
+  deal               Deal      @relation(fields: \[dealId\], references: \[id\], onDelete: Cascade)
 
-  createdAt          DateTime      @default(now())
-
-  @@index(\[tenantId, entityType, entityId\])  
+  @@unique(\[dealId, fiscalYear\])  
 }
 
-### **2\. Runtime Validation (The Guardrails)**
+/// Document Vault entity mapped to S3.  
+model Document {  
+  id                     String   @id @default(uuid()) @db.Uuid  
+  dealId                 String   @db.Uuid  
+  uploaderId             String   @db.Uuid  
+  fileName               String  
+  s3ObjectKey            String   @unique  
+  isSharedWithInvestor   Boolean  @default(false)  
+    
+  deal                   Deal     @relation(fields: \[dealId\], references: \[id\], onDelete: Cascade)  
+  uploader               User     @relation(fields: \[uploaderId\], references: \[id\])
 
-We use Zod to enforce application-level constraints before data ever touches Prisma.
+  @@index(\[dealId, isSharedWithInvestor\])  
+}
+
+/// Operational tasks mapped globally or to specific deals.  
+model Task {  
+  id                 String    @id @default(uuid()) @db.Uuid  
+  dealId             String?   @db.Uuid  
+  assigneeId         String    @db.Uuid  
+  title              String  
+  isCompleted        Boolean   @default(false)  
+  dueDate            DateTime?  
+    
+  deal               Deal?     @relation(fields: \[dealId\], references: \[id\], onDelete: Cascade)  
+  assignee           User      @relation(fields: \[assigneeId\], references: \[id\])
+
+  @@index(\[assigneeId, isCompleted\])  
+}
+
+---
+
+## **2\. Runtime Validation (The Guardrails)**
+
+We will use **Zod** to catch logic errors at the application boundary before they hit the database.
 
 TypeScript
 
-import { z } from 'zod';
+import { z } from "zod";
 
-// Strict password policy defined in PRD  
-const PasswordSchema \= z.string()  
-  .min(12, "Password must be at least 12 characters long")  
-  .regex(/\[A-Z\]/, "Must contain at least one uppercase letter")  
-  .regex(/\[0-9\]/, "Must contain at least one number")  
-  .regex(/\[^A-Za-z0-9\]/, "Must contain at least one special character");
-
-export const CreateUserSchema \= z.object({  
-  emailAddress: z.string().email(),  
-  password: PasswordSchema,  
-  roleLevel: z.enum(\['ADMIN', 'PRINCIPAL', 'CONTROLLER'\]),  
+// Password & User Guardrails  
+export const UserRegistrationSchema \= z.object({  
+  email: z.string().email("Must be a universally valid email"),  
+  password: z.string()  
+    .min(12, "Password must be at least 12 characters")  
+    .regex(/\[A-Z\]/, "Must contain at least one uppercase letter")  
+    .regex(/\[0-9\]/, "Must contain at least one number")  
+    .regex(/\[^a-zA-Z0-9\]/, "Must contain at least one special character"),  
+  firstName: z.string().min(1),  
+  lastName: z.string().min(1),  
+  linkedinUrl: z.string().url("Must be a valid URL").optional(),  
+  role: z.enum(\["ADMIN", "ANALYST"\])  
 });
 
-// Entity Ownership validations (Cap Table Math)  
-export const CreateOwnershipSchema \= z.object({  
-  parentAssetId: z.string().uuid(),  
-  childAssetId: z.string().uuid(),  
-  percentage: z.number()  
-    .min(0.0001, "Ownership must be greater than 0")  
-    .max(100.0000, "Ownership cannot exceed 100%"),  
-  effectiveDate: z.string().datetime(),  
-}).refine(data \=\> data.parentAssetId \!== data.childAssetId, {  
-  message: "An asset cannot own itself (circular dependency prevented at surface level).",  
-  path: \["childAssetId"\]  
+// Domain Sourcing Target Guardrails  
+export const SourcingTargetCreateSchema \= z.object({  
+  domain: z.string().refine((val) \=\> /^\[a-zA-Z0-9.-\]+\\.\[a-zA-Z\]{2,}$/.test(val), {  
+    message: "Must be a valid FQDN (e.g., acme.com)",  
+  }),  
+  name: z.string().min(2),  
+  estimatedRevenue: z.number().nonnegative().optional(),  
+  estimatedMargins: z.number().min(0).max(100).optional(),  
 });
 
-### **3\. Domain Relationships (The Map)**
+// AI OCR Financial Validation Guardrails  
+export const FinancialRecordVerificationSchema \= z.object({  
+  fiscalYear: z.number().int().min(1900).max(2100),  
+  revenue: z.number().nonnegative().optional(),  
+  ebitda: z.number().optional(), // EBITDA can technically be negative  
+  grossMargin: z.number().min(-100).max(100).optional(),  
+  isVerifiedByHuman: z.literal(true, {  
+    errorMap: () \=\> ({ message: "Must be verified by a human before saving" })  
+  }),  
+  customMetrics: z.record(z.string(), z.number()).optional() // Validating the JSONB shape  
+});
+
+---
+
+## **3\. Domain Relationships (The Map)**
+
+This ERD visualizes the strict boundaries between the multi-tenant Workspace, the raw SourcingTarget (Universe), and the structured Deal pipeline.
 
 Code snippet
 
 erDiagram  
-    TENANT ||--o{ USER : contains  
-    TENANT ||--o{ COHORT : manages  
-    TENANT ||--o{ ASSET : owns  
-    TENANT ||--o{ AIRLOCK\_DOCUMENT : stores  
-    TENANT ||--o{ AUDIT\_LOG : tracks
-
-    USER ||--o{ USER\_COHORT : belongs\_to  
-    COHORT ||--o{ USER\_COHORT : includes  
+    WORKSPACE ||--o{ USER : "has many"  
+    WORKSPACE ||--o{ SOURCING\_TARGET : "has many (Universe)"  
+    WORKSPACE ||--o{ COMPANY : "has many"  
+    WORKSPACE ||--o{ DEAL : "has many"  
+    WORKSPACE ||--o{ SPONSORED\_LICENSE : "grants/receives"  
       
-    USER ||--o{ AIRLOCK\_DOCUMENT : uploads  
-    USER ||--o{ AUDIT\_LOG : performs
+    COMPANY ||--o{ DEAL : "can have multiple historical"  
+      
+    DEAL ||--o{ FINANCIAL\_RECORD : "contains"  
+    DEAL ||--o{ DOCUMENT : "contains"  
+    DEAL ||--o{ TASK : "has operational"  
+      
+    USER ||--o{ TASK : "assigned to"  
+    USER ||--o{ DOCUMENT : "uploads"
 
-    ASSET ||--o{ ENTITY\_OWNERSHIP : "is parent in"  
-    ASSET ||--o{ ENTITY\_OWNERSHIP : "is child in"
+---
 
-### **4\. Security & Access Policies (The Firewall)**
+## **4\. Security & Access Policies (The Firewall)**
 
-Vexel implements rigorous Multi-Tenant isolation using PostgreSQL Row Level Security (RLS).
+Given your requirement for multi-tenancy and cryptographic privacy, here is the core Application-Level Access Control logic (to be enforced via backend middleware).
 
-SQL
+\+2
 
-\-- Enable RLS on all tables  
-ALTER TABLE "User" ENABLE ROW LEVEL SECURITY;  
-ALTER TABLE "Asset" ENABLE ROW LEVEL SECURITY;  
-ALTER TABLE "AirlockDocument" ENABLE ROW LEVEL SECURITY;
+* **Tenant Isolation Rule:** A user can *only* read/write data where record.workspaceId \=== user.workspaceId.  
+* **Searcher RBAC:**  
+  * ADMIN: Full CRUD on Workspace, User, Deal, Company, Document, FinancialRecord.  
+  * ANALYST: Can Create/Read/Update Deal, Company, Document, FinancialRecord. **Cannot** Delete Deal (Archive only). **Cannot** access Workspace settings/billing.  
+  * \+1  
+* **Investor Tier 2 Firewall:**  
+  * If user.workspaceType \=== INVESTOR and attempts to fetch Deal details:  
+    * **Rule 1 (Tier Boundary):** If Deal.visibilityTier \=== TIER\_1\_PRIVATE, return 403 Forbidden and obfuscate aggregated metrics (e.g., "$1M \- $2M").  
+    * \+1  
+    * **Rule 2 (Read-Only State):** If Deal.visibilityTier \=== TIER\_2\_SHARED, return full Deal details, but explicitly block PUT/POST/DELETE requests.  
+    * **Rule 3 (Document Granularity):** Only return Document records where dealId \=== request.dealId AND isSharedWithInvestor \=== true.  
+    * \+1  
+    * **Rule 4 (Chat Isolation):** Completely strip InternalChatMessage arrays from the API response to the Investor.  
+    * \+1
 
-\-- 1\. Tenant Isolation (The Prime Directive)  
-\-- Users can only read/write data where the tenant\_id matches their session's tenant\_id  
-CREATE POLICY tenant\_isolation\_policy ON "Asset"  
-    USING (tenantId \= current\_setting('app.current\_tenant\_id')::uuid);
+---
 
-\-- 2\. Read-Only Freeze (Cold Storage)  
-\-- If billingStatus is FROZEN, block all INSERT/UPDATE/DELETE actions  
-CREATE POLICY block\_writes\_on\_frozen ON "Asset"  
-    FOR INSERT  
-    WITH CHECK (  
-        (SELECT "billingStatus" FROM "Tenant" WHERE id \= current\_setting('app.current\_tenant\_id')::uuid) \!= 'FROZEN'  
-    );
+## **5\. Business Invariants (The "Rules of Physics")**
 
-\-- 3\. Day 31 Hard-Lock (Overage constraint)  
-\-- Prevent POSTing new assets if overage\_start\_date is \> 30 days ago  
-CREATE POLICY block\_asset\_creation\_on\_overage ON "Asset"  
-    FOR INSERT  
-    WITH CHECK (  
-        (SELECT "overageStartDate" FROM "Tenant" WHERE id \= current\_setting('app.current\_tenant\_id')::uuid) IS NULL   
-        OR   
-        (SELECT "overageStartDate" FROM "Tenant" WHERE id \= current\_setting('app.current\_tenant\_id')::uuid) \> NOW() \- INTERVAL '30 days'  
-    );
+These are the strict, non-negotiable logical rules governing Ceeq:
 
-### **5\. Business Invariants (The "Rules of Physics")**
+* **The Zero-Privacy Handshake:** No data (not even anonymized Tier 1 aggregated deal flow) can flow from a Searcher to an Investor unless an active, mutually-approved connection exists between their Workspaces.  
+* \+1  
+* **Financial Contamination Lock:** Data extracted via the AI OCR engine remains in a temporary state. It cannot be used in dashboard aggregate calculations or shared to the Investor OS until FinancialRecord.isVerifiedByHuman \=== true.  
+* \+1  
+* **Collision Hash Salting:** The hashedDomain on the Company model MUST utilize a single, global pepper algorithm (rather than per-workspace salts) to allow the system to silently detect cross-workspace overlap (Traffic Light Alerts) without breaking NDA walls.  
+* \+2  
+* **The Single Active Deal Rule:** While a Company can have multiple historical Deals mapped to it (1:N), a Workspace cannot have more than one Deal where status \=== ACTIVE linked to the same CompanyId simultaneously.  
+* \+1  
+* **Soft Deletion for Compliance:** If a Searcher Workspace is deleted, historical Documents and Deals previously marked as TIER\_2\_SHARED must be retained in read-only mode for the backing Investor to satisfy audit logs.
 
-* **Cap Table Math Limits:** The sum of percentage across all active EntityOwnership records where childAssetId is X cannot exceed 100.0000 for any given effectiveDate.  
-* **Audit Immutability:** The system application layer must *never* execute a DELETE or UPDATE statement against the AuditLog table.  
-* **Airlock State Machine:** An AirlockDocument cannot transition directly from PENDING\_EXTRACTION to PROCESSED without passing through REVIEW\_REQUIRED if the AI confidence score on extraction was below the required threshold.  
-* **Circular Ownership Prevention:** A recursive check must be executed before creating an EntityOwnership record. If Asset A owns Asset B, and Asset B owns Asset C, Asset C cannot own Asset A.  
-* **Grace Period Resolution:** When an asset is deleted, the system must check the total asset count. If the count falls below the plan limit, overageStartDate must be immediately set to null.
+---
 
-### **6\. The "Golden Record" (Mock Data)**
+## **6\. The "Golden Record" (Mock Data)**
 
-A fully hydrated representation of an Asset with its temporal Cap Table resolution and associated Audit Logs.
+Here is a fully populated Deal JSON payload, demonstrating the structure after OCR extraction, human validation, and Tier 2 Investor sharing.
 
 JSON
 
 {  
-  "id": "a1b2c3d4-e5f6-7890-1234-56789abcdef0",  
-  "tenantId": "t9876543-210f-edcb-a987-6543210abcde",  
-  "name": "Vexel Holdings LLC",  
-  "type": "LLC",  
-  "totalValue": "25000000.0000",  
-  "capTable": {  
-    "effectiveDate": "2026-02-20T00:00:00Z",  
-    "owners": \[  
-      {  
-        "parentAssetId": "p1111111-2222-3333-4444-555555555555",  
-        "parentName": "G1 Revocable Trust",  
-        "percentage": "60.0000"  
-      },  
-      {  
-        "parentAssetId": "p6666666-7777-8888-9999-000000000000",  
-        "parentName": "G2 Family Trust",  
-        "percentage": "40.0000"  
-      }  
-    \]  
+  "id": "deal-9f8a-4b2c-819a-112233445566",  
+  "stage": "DUE\_DILIGENCE",  
+  "status": "ACTIVE",  
+  "visibilityTier": "TIER\_2\_SHARED",  
+  "createdAt": "2026-02-15T10:00:00Z",  
+  "company": {  
+    "name": "Acme Logistics",  
+    "domain": "acme-logistics.com",  
+    "industry": "Transportation",  
+    "hashedDomain": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"  
   },  
-  "recentActivity": \[  
+  "financials": \[  
     {  
-      "auditId": "log12345-abcd-efgh-ijkl-mnopqrstuvwx",  
-      "action": "OWNERSHIP\_UPDATED",  
-      "user": "admin@vexel.family",  
-      "timestamp": "2026-02-15T14:32:01Z",  
-      "payload": {  
-        "previousState": { "percentage": "100.0000", "owner": "G1 Revocable Trust" },  
-        "newState": { "percentage": "60.0000", "owner": "G1 Revocable Trust" },  
-        "reason": "Estate distribution event"  
+      "fiscalYear": 2025,  
+      "revenue": 5320000.00,  
+      "ebitda": 1450000.00,  
+      "grossMargin": 34.5,  
+      "isVerifiedByHuman": true,  
+      "customMetrics": {  
+        "ownersSalaryAddback": 150000.00,  
+        "oneTimeLegalFee": 25000.00  
       }  
+    }  
+  \],  
+  "documents": \[  
+    {  
+      "fileName": "Acme\_CIM\_2025.pdf",  
+      "s3ObjectKey": "vault/deal-9f8a/acme\_cim\_2025\_secure.pdf",  
+      "isSharedWithInvestor": true  
+    },  
+    {  
+      "fileName": "Internal\_Notes\_Unsanitized.docx",  
+      "s3ObjectKey": "vault/deal-9f8a/notes\_internal.docx",  
+      "isSharedWithInvestor": false  
     }  
   \]  
 }
 
-### **7\. The Seeding Specification (The Playground)**
+---
 
-This TypeScript script provisions a mathematically sound test environment for Jules to run end-to-end testing, including edge cases like active overages and complex ownership structures.
+## **7\. The Seeding Specification (The Playground)**
+
+To test the multi-tenancy and the privacy firewall, Jules must use a seed script that provisions interlocked environments.
 
 TypeScript
 
-// seed.ts  
-import { PrismaClient } from '@prisma/client';  
-const prisma \= new PrismaClient();
+// seed.ts logic overview
 
-async function main() {  
-  // 1\. Create a Tenant in an active overage state (Day 15 of Grace Period)  
-  const tenant \= await prisma.tenant.create({  
-    data: {  
-      name: 'Roy Family Office',  
-      billingStatus: 'ACTIVE',  
-      overageStartDate: new Date(Date.now() \- 15 \* 24 \* 60 \* 60 \* 1000), // 15 days ago  
-    },  
+async function seed() {  
+  // 1\. Create Workspaces  
+  const investorWorkspace \= await createWorkspace(INVESTOR, "Apex Capital");  
+  const searcherWorkspace \= await createWorkspace(SEARCHER, "Blue Ocean Search");
+
+  // 2\. Establish Active Network Connection (Simulating the Handshake)  
+  await createNetworkConnection(investorWorkspace.id, searcherWorkspace.id, 'ACTIVE');
+
+  // 3\. Create the "Universe" Noise  
+  await createSourcingTargets(searcherWorkspace.id, 500); // Noise data
+
+  // 4\. Create the Target Company  
+  const company \= await createCompany(searcherWorkspace.id, {  
+     name: "Acme Logistics",  
+     domain: "acme.com",  
+     hashedDomain: generateGlobalHash("acme.com")   
   });
 
-  // 2\. Create the Principal User  
-  const principal \= await prisma.user.create({  
-    data: {  
-      tenantId: tenant.id,  
-      emailAddress: 'logan@royfamily.io',  
-      passwordHash: '$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGG.xyz', // Mock bcrypt hash  
-      roleLevel: 'PRINCIPAL',  
-    },  
+  // 5\. Seed Edge Case: The "Tier 1 vs Tier 2" Firewall Test  
+  // Create an active Deal for Acme Logistics  
+  const deal \= await createDeal(searcherWorkspace.id, company.id, {  
+     visibilityTier: VisibilityTier.TIER\_2\_SHARED,  
+     stage: DealStage.LOI\_ISSUED  
   });
 
-  // 3\. Setup Cohorts  
-  const g1Cohort \= await prisma.cohort.create({ data: { tenantId: tenant.id, name: 'G1 Leadership' }});  
-  await prisma.userCohort.create({ data: { userId: principal.id, cohortId: g1Cohort.id }});
+  // Attach mixed-visibility documents  
+  await attachDocument(deal.id, "Public\_CIM.pdf", true); // Investor CAN see  
+  await attachDocument(deal.id, "Private\_Valuation\_Model.xlsx", false); // Investor CANNOT see
 
-  // 4\. Create Assets (The Entities)  
-  const masterTrust \= await prisma.asset.create({ data: { tenantId: tenant.id, name: 'Waystar Master Trust', type: 'TRUST', totalValue: 500000000.00 }});  
-  const holdCo \= await prisma.asset.create({ data: { tenantId: tenant.id, name: 'Waystar HoldCo LLC', type: 'LLC', totalValue: 200000000.00 }});  
-  const realEstate \= await prisma.asset.create({ data: { tenantId: tenant.id, name: 'Manhattan Penthouse', type: 'REAL\_ESTATE', totalValue: 45000000.00 }});
-
-  // 5\. Establish Temporal Cap Table Relationships  
-  // HoldCo is owned 100% by Master Trust  
-  await prisma.entityOwnership.create({  
-    data: {  
-      parentAssetId: masterTrust.id,  
-      childAssetId: holdCo.id,  
-      percentage: 100.0000,  
-      effectiveDate: new Date('2020-01-01'),  
-    }  
-  });
-
-  // Real Estate is owned 50% by Master Trust, 50% by HoldCo (Testing complex roll-up math)  
-  await prisma.entityOwnership.createMany({  
-    data: \[  
-      { parentAssetId: masterTrust.id, childAssetId: realEstate.id, percentage: 50.0000, effectiveDate: new Date('2025-06-01') },  
-      { parentAssetId: holdCo.id, childAssetId: realEstate.id, percentage: 50.0000, effectiveDate: new Date('2025-06-01') }  
-    \]  
-  });
-
-  // 6\. Airlock Document (Edge Case: Needs Review)  
-  await prisma.airlockDocument.create({  
-    data: {  
-      tenantId: tenant.id,  
-      uploadedById: principal.id,  
-      fileUrl: 's3://vexel-vault/encrypted-doc-123.pdf',  
-      status: 'REVIEW\_REQUIRED',  
-    }  
-  });
-
-  console.log('Seeding completed successfully.');  
-}
-
-main().catch(e \=\> {  
-  console.error(e);  
-  process.exit(1);  
-}).finally(async () \=\> {  
-  await prisma.$disconnect();  
-});
-
+  // Attach Unverified Financials (Should NOT be visible in Dashboard aggregates)  
+  await createFinancials(deal.id, {  
+     revenue: 4000000,   
+     isVerifiedByHuman: false   
+  });  
+}  
