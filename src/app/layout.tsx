@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { ThemeProvider } from "@/shared/components/providers/theme-provider";
 import { QueryProvider } from "@/shared/components/providers/query-provider";
+import { DummyAuthProvider } from "@/shared/components/providers/dummy-auth-provider";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -37,7 +38,9 @@ export default function RootLayout({
             disableTransitionOnChange
           >
           <QueryProvider>
-            {children}
+            <DummyAuthProvider>
+              {children}
+            </DummyAuthProvider>
           </QueryProvider>
         </ThemeProvider>
       </body>
