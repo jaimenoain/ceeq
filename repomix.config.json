@@ -6,7 +6,7 @@
     "removeEmptyLines": true,
     "topFiles": [
       ".ai-status.md",
-      "ARCHITECTURE.md",
+      "docs/ARCHITECTURE.md",
       "docs/FUNCTIONAL_SPEC.md",
       "docs/DOMAIN_MODEL.md",
       "docs/UX_SPEC.md",
