@@ -17,17 +17,19 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+export function getInitialUser(): User | null {
+  return process.env.NEXT_PUBLIC_USE_MOCKS === 'true'
+    ? {
+        id: '1',
+        role: 'SEARCHER',
+        name: 'Jane Analyst',
+      }
+    : null;
+}
+
 export function DummyAuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize synchronously to support SSR and avoid hydration mismatch if env vars are consistent.
-  const [user] = useState<User | null>(() => {
-    return process.env.NEXT_PUBLIC_USE_MOCKS === 'true'
-      ? {
-          id: '1',
-          role: 'SEARCHER',
-          name: 'Jane Analyst',
-        }
-      : null;
-  });
+  const [user] = useState<User | null>(getInitialUser);
   const [loading] = useState(false);
 
   return (
