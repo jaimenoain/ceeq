@@ -1,8 +1,6 @@
 import { redirect } from 'next/navigation';
+import { getRedirectPath } from '@/shared/lib/auth-utils';
 
 export default function RootPage() {
-  if (process.env.NEXT_PUBLIC_USE_MOCKS === 'true') {
-    redirect('/searcher/dashboard');
-  }
-  redirect('/login');
+  redirect(getRedirectPath());
 }
