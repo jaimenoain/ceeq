@@ -4,7 +4,7 @@ import { useFormState } from 'react-dom'
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { login } from '../actions'
+import { signup } from '../actions'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
@@ -21,9 +21,9 @@ const initialState = {
   error: '',
 }
 
-export default function LoginPage() {
+export default function SignupPage() {
   const router = useRouter()
-  const [state, formAction] = useFormState(login, initialState)
+  const [state, formAction] = useFormState(signup, initialState)
 
   useEffect(() => {
     if (process.env.NEXT_PUBLIC_USE_MOCKS === 'true') {
@@ -34,9 +34,9 @@ export default function LoginPage() {
   return (
     <Card className="w-[350px]">
       <CardHeader>
-        <CardTitle>Login</CardTitle>
+        <CardTitle>Sign Up</CardTitle>
         <CardDescription>
-          Enter your email below to login to your account.
+          Enter your information to create an account
         </CardDescription>
       </CardHeader>
       <form action={formAction}>
@@ -70,12 +70,12 @@ export default function LoginPage() {
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
           <Button className="w-full" type="submit">
-            Login
+            Sign Up
           </Button>
           <div className="text-center text-sm">
-            Don&apos;t have an account?{' '}
-            <Link href="/signup" className="underline">
-              Sign up
+            Already have an account?{' '}
+            <Link href="/login" className="underline">
+              Log in
             </Link>
           </div>
         </CardFooter>
