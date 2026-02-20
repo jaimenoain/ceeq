@@ -1,0 +1,22 @@
+{
+  "output": {
+    "style": "xml",
+    "filePath": "repomix-output.xml"
+  },
+  "ignore": {
+    "customPatterns": [
+      ".env",
+      ".env.*",
+      "**/.env",
+      "**/.env.*",
+      "**/package-lock.json",
+      "**/bun.lockb",
+      "**/pnpm-lock.yaml",
+      "**/.next/**",
+      "**/dist/**",
+      "**/public/images/**",
+      "**/node_modules/**",
+      "verify_repomix.mjs"
+    ]
+  }
+}
