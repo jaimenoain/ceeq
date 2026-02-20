@@ -1,7 +1,17 @@
 {
   "output": {
     "style": "xml",
-    "filePath": "repomix-output.xml"
+    "filePath": "repomix-output.xml",
+    "showLineNumbers": true,
+    "removeEmptyLines": true,
+    "topFiles": [
+      ".ai-status.md",
+      "ARCHITECTURE.md",
+      "docs/FUNCTIONAL_SPEC.md",
+      "docs/DOMAIN_MODEL.md",
+      "docs/UX_SPEC.md",
+      "docs/API_CONTRACT.md"
+    ]
   },
   "ignore": {
     "customPatterns": [
@@ -16,7 +26,12 @@
       "**/dist/**",
       "**/public/images/**",
       "**/node_modules/**",
-      "verify_repomix.mjs"
+      
+      ".gitignore",
+      "verify_*.js",
+      "verify_*.ts",
+      "verify_*.mjs",
+      "verification.log"
     ]
   }
 }
