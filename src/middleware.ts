@@ -1,6 +1,44 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import type { Database } from '@/shared/types/supabase'
+import type { WorkspaceType } from '@/shared/types/api'
+
+// Exporting logic for verification
+export function getProtectedRedirect(
+  path: string,
+  hasSession: boolean,
+  workspaceType: WorkspaceType | null
+): string | null {
+  const isProtected = path.startsWith('/searcher') || path.startsWith('/investor')
+
+  // 1. Unprotected routes are always allowed
+  if (!isProtected) {
+    return null
+  }
+
+  // 2. No Session -> Login
+  if (!hasSession) {
+    return '/login'
+  }
+
+  // 3. Session, No Workspace -> Onboarding
+  if (!workspaceType) {
+    // Prevent infinite redirect loop if already on /onboarding
+    if (path === '/onboarding') return null
+    return '/onboarding'
+  }
+
+  // 4. Strict Role Isolation
+  if (workspaceType === 'SEARCHER' && path.startsWith('/investor')) {
+    return '/searcher/dashboard'
+  }
+  if (workspaceType === 'INVESTOR' && path.startsWith('/searcher')) {
+    return '/investor/dashboard'
+  }
+
+  // 5. Allowed
+  return null
+}
 
 export async function middleware(request: NextRequest) {
   // 1. Handle Mock Mode Bypass
@@ -8,6 +46,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // Create an unmodified response object to start with
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -42,24 +81,12 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const path = request.nextUrl.pathname
-  const isProtectedPath = path.startsWith('/searcher') || path.startsWith('/investor')
 
-  if (!user && isProtectedPath) {
-    const redirectUrl = new URL('/login', request.url)
-    const redirectResponse = NextResponse.redirect(redirectUrl)
+  // 3. Fetch Workspace Type if User Exists
+  let workspaceType: WorkspaceType | null = null
 
-    // Copy cookies from the standard response (which might have session updates) to the redirect
-    response.cookies.getAll().forEach((cookie) => {
-        redirectResponse.cookies.set(cookie.name, cookie.value, cookie)
-    })
-
-    return redirectResponse
-  }
-
-  if (user && isProtectedPath) {
-    // 3. Check Authorization (WorkspaceType)
-    // Query public.User to get workspaceId and joined Workspace type
-    const { data: userProfile, error } = await supabase
+  if (user) {
+    const { data: userProfile } = await supabase
       .from('User')
       .select(`
         workspaceId,
@@ -70,44 +97,25 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    // 4. Routing Logic
-    if (error || !userProfile || !userProfile.Workspace) {
-      // If we can't determine workspace type, send to onboarding
-      if (path !== '/onboarding') {
-         const redirectUrl = new URL('/onboarding', request.url)
-         const redirectResponse = NextResponse.redirect(redirectUrl)
-
-         response.cookies.getAll().forEach((cookie) => {
-             redirectResponse.cookies.set(cookie.name, cookie.value, cookie)
-         })
-
-         return redirectResponse
-      }
-      return response
+    if (userProfile?.Workspace?.workspaceType) {
+      workspaceType = userProfile.Workspace.workspaceType as WorkspaceType
     }
+  }
 
-    // Cast workspaceType explicitly or rely on TS inference from Database
-    const workspaceType = userProfile.Workspace.workspaceType
+  // 4. Determine Redirect
+  const redirectPath = getProtectedRedirect(path, !!user, workspaceType)
 
-    // Strict Isolation Rules
-    let targetRedirect: string | null = null
+  if (redirectPath) {
+    const redirectUrl = new URL(redirectPath, request.url)
+    const redirectResponse = NextResponse.redirect(redirectUrl)
 
-    if (workspaceType === 'SEARCHER' && path.startsWith('/investor')) {
-      targetRedirect = '/searcher/dashboard'
-    } else if (workspaceType === 'INVESTOR' && path.startsWith('/searcher')) {
-      targetRedirect = '/investor/dashboard'
-    }
+    // Copy cookies from the refreshed session response to the redirect response
+    // This ensures the session is persisted across the redirect
+    response.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value, cookie)
+    })
 
-    if (targetRedirect) {
-        const redirectUrl = new URL(targetRedirect, request.url)
-        const redirectResponse = NextResponse.redirect(redirectUrl)
-
-        response.cookies.getAll().forEach((cookie) => {
-            redirectResponse.cookies.set(cookie.name, cookie.value, cookie)
-        })
-
-        return redirectResponse
-    }
+    return redirectResponse
   }
 
   return response
