@@ -105,5 +105,9 @@ BEGIN
   END IF;
 END $$;
 
-RAISE NOTICE 'RLS Verification Passed!';
+DO $$
+BEGIN
+  RAISE NOTICE 'RLS Verification Passed!';
+END $$;
+
 ROLLBACK;
