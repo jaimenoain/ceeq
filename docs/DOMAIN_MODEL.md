@@ -1,4 +1,4 @@
-# **Vexel: Domain Model**
+# **Ceeq: Domain Model**
 
 Based on your answers, I have made the following architectural decisions to optimally support Vexel's enterprise-grade requirements:
 

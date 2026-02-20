@@ -12,7 +12,7 @@ const SECRET_KEY = `${SECRET_PART_1}${SECRET_PART_2}=${SECRET_VAL_PART_1}${SECRE
 const SECRET_VALUE = `${SECRET_VAL_PART_1}${SECRET_VAL_PART_2}`;
 const DUMMY_ENV_FILE = '.env.dummy';
 const OUTPUT_FILE = 'repomix-output.xml';
-const DOCS_CONTENT_CHECK = 'SearchFundOS Domain Model';
+const DOCS_CONTENT_CHECK = 'Ceeq: Domain Model';
 
 console.log('Starting Repomix verification...');
 
