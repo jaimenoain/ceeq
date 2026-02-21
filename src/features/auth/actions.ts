@@ -68,6 +68,7 @@ export async function processOnboarding(
   });
 
   if (userError) {
+    await supabase.from("Workspace").delete().eq("id", workspace.id);
     return { error: `Failed to create user profile: ${userError.message}` };
   }
 

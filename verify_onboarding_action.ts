@@ -28,6 +28,9 @@ const createMockSupabase = (opts: any = {}) => {
               }),
             }),
           }),
+          delete: () => ({
+            eq: () => ({ error: null }),
+          }),
         };
       }
       if (table === 'User') {
