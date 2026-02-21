@@ -38,6 +38,10 @@ describe('normalizeDomain', () => {
     expect(normalizeDomain('https://www.google.com/test?q=1')).toBe('google.com');
   });
 
+  it('should handle mixed case with www and path', () => {
+    expect(normalizeDomain('https://Www.Acme.com/path')).toBe('acme.com');
+  });
+
   it('should handle whitespace', () => {
     expect(normalizeDomain('  google.com  ')).toBe('google.com');
   });
