@@ -1,7 +1,10 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 import { createClient } from '../../shared/lib/supabase/server';
 import { normalizeDomain, hashDomain } from '../../shared/lib/crypto-domain';
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseClient = any; // Using any for mock compatibility, or import proper type
 
@@ -11,6 +14,10 @@ export interface ConversionResult {
   companyId?: string;
   error?: string;
 }
+
+const ConvertTargetSchema = z.object({
+  targetId: z.string(),
+});
 
 /**
  * Core logic for converting a target to a deal.
@@ -165,6 +172,18 @@ export async function convertTargetToDeal(
 }
 
 export async function convertTargetToDealAction(targetId: string): Promise<ConversionResult> {
+  const parseResult = ConvertTargetSchema.safeParse({ targetId });
+  if (!parseResult.success) {
+      return { success: false, error: "Invalid target ID" };
+  }
+
   const supabase = createClient();
-  return convertTargetToDeal(supabase, targetId);
+  const result = await convertTargetToDeal(supabase, targetId);
+
+  if (result.success) {
+      revalidatePath('/searcher/universe');
+      revalidatePath('/searcher/pipeline');
+  }
+
+  return result;
 }
