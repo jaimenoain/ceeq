@@ -1,8 +1,7 @@
 'use server';
 
 import { createClient } from '../../shared/lib/supabase/server';
-import { normalizeDomain } from '../sourcing/lib/domain-utils';
-import crypto from 'crypto';
+import { normalizeDomain, hashDomain } from '../../shared/lib/crypto-domain';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseClient = any; // Using any for mock compatibility, or import proper type
 
@@ -53,7 +52,7 @@ export async function convertTargetToDeal(
 
   // 4. Compute Hash
   const domain = normalizeDomain(target.domain);
-  const hashedDomain = crypto.createHash('sha256').update(domain).digest('hex');
+  const hashedDomain = hashDomain(domain);
 
   // 5. Check Local Collision (Idempotency)
   // Check if we already have this company in our workspace
