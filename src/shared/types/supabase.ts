@@ -89,6 +89,53 @@ export interface Database {
           }
         ]
       }
+      SourcingTarget: {
+        Row: {
+          domain: string
+          estimatedMargins: number | null
+          estimatedRevenue: number | null
+          fitScore: number
+          id: string
+          industry: string | null
+          name: string
+          scoreMetadata: Json | null
+          status: Database["public"]["Enums"]["SourcingStatus"]
+          workspaceId: string
+        }
+        Insert: {
+          domain: string
+          estimatedMargins?: number | null
+          estimatedRevenue?: number | null
+          fitScore?: number
+          id?: string
+          industry?: string | null
+          name: string
+          scoreMetadata?: Json | null
+          status?: Database["public"]["Enums"]["SourcingStatus"]
+          workspaceId: string
+        }
+        Update: {
+          domain?: string
+          estimatedMargins?: number | null
+          estimatedRevenue?: number | null
+          fitScore?: number
+          id?: string
+          industry?: string | null
+          name?: string
+          scoreMetadata?: Json | null
+          status?: Database["public"]["Enums"]["SourcingStatus"]
+          workspaceId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "SourcingTarget_workspaceId_fkey"
+            columns: ["workspaceId"]
+            isOneToOne: false
+            referencedRelation: "Workspace"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       User: {
         Row: {
           email: string
