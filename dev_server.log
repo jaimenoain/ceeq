@@ -2,20 +2,59 @@
 > new_app@0.1.0 dev
 > next dev
 
- ⚠ Port 3000 is in use, trying 3001 instead.
   ▲ Next.js 14.2.35
-  - Local:        http://localhost:3001
+  - Local:        http://localhost:3000
 
  ✓ Starting...
- ✓ Ready in 1730ms
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+ ✓ Ready in 1818ms
  ○ Compiling /src/middleware ...
- ✓ Compiled /src/middleware in 1392ms (122 modules)
+ ✓ Compiled /src/middleware in 1465ms (122 modules)
  ○ Compiling /searcher/universe ...
- ✓ Compiled /searcher/universe in 8.3s (928 modules)
- GET /searcher/universe 200 in 9101ms
- ✓ Compiled in 911ms (442 modules)
+ ⨯ ./src/shared/components/ui/toaster.tsx:3:1
+Module not found: Can't resolve '@/shared/components/hooks/use-toast'
+[0m [90m 1 |[39m [32m"use client"[39m[0m
+[0m [90m 2 |[39m[0m
+[0m[31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m { useToast } [36mfrom[39m [32m"@/shared/components/hooks/use-toast"[39m[0m
+[0m [90m   |[39m [31m[1m^[22m[39m[0m
+[0m [90m 4 |[39m [36mimport[39m {[0m
+[0m [90m 5 |[39m   [33mToast[39m[33m,[39m[0m
+[0m [90m 6 |[39m   [33mToastClose[39m[33m,[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
 <w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (133kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
- ✓ Compiled in 384ms (442 modules)
- ✓ Compiled /searcher/universe in 316ms (468 modules)
- GET /searcher/universe 200 in 623ms
- GET /searcher/universe 200 in 64ms
+ ⨯ ./src/shared/components/ui/toaster.tsx:3:1
+Module not found: Can't resolve '@/shared/components/hooks/use-toast'
+[0m [90m 1 |[39m [32m"use client"[39m[0m
+[0m [90m 2 |[39m[0m
+[0m[31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m { useToast } [36mfrom[39m [32m"@/shared/components/hooks/use-toast"[39m[0m
+[0m [90m   |[39m [31m[1m^[22m[39m[0m
+[0m [90m 4 |[39m [36mimport[39m {[0m
+[0m [90m 5 |[39m   [33mToast[39m[33m,[39m[0m
+[0m [90m 6 |[39m   [33mToastClose[39m[33m,[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+ ⨯ ./src/shared/components/ui/toaster.tsx:3:1
+Module not found: Can't resolve '@/shared/components/hooks/use-toast'
+[0m [90m 1 |[39m [32m"use client"[39m[0m
+[0m [90m 2 |[39m[0m
+[0m[31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m { useToast } [36mfrom[39m [32m"@/shared/components/hooks/use-toast"[39m[0m
+[0m [90m   |[39m [31m[1m^[22m[39m[0m
+[0m [90m 4 |[39m [36mimport[39m {[0m
+[0m [90m 5 |[39m   [33mToast[39m[33m,[39m[0m
+[0m [90m 6 |[39m   [33mToastClose[39m[33m,[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+ GET /searcher/universe 500 in 20002ms
+ ✓ Compiled /_error in 691ms (697 modules)
+ ✓ Compiled /searcher/universe in 266ms (616 modules)
+ GET /searcher/universe 200 in 780ms
+ GET /searcher/universe 200 in 66ms
+ POST /searcher/universe 200 in 84ms
+ ✓ Compiled in 1208ms (1264 modules)
+ GET /searcher/universe 200 in 300ms
+ POST /searcher/universe 200 in 1065ms
