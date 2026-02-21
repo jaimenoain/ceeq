@@ -10,13 +10,22 @@ export function getProtectedRedirect(
   workspaceType: WorkspaceType | null
 ): string | null {
   const isProtected = path.startsWith('/searcher') || path.startsWith('/investor')
+  const isAuthPage = path === '/login' || path === '/signup'
 
-  // 1. Unprotected routes are always allowed
+  // 1. Redirect Authenticated Users away from Auth Pages
+  if (hasSession && isAuthPage) {
+    if (!workspaceType) return '/onboarding'
+    if (workspaceType === 'SEARCHER') return '/searcher/dashboard'
+    if (workspaceType === 'INVESTOR') return '/investor/dashboard'
+    return '/onboarding'
+  }
+
+  // 2. Unprotected routes are always allowed
   if (!isProtected) {
     return null
   }
 
-  // 2. No Session -> Login
+  // 3. No Session -> Login
   if (!hasSession) {
     return '/login'
   }
