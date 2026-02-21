@@ -7,7 +7,7 @@ export const OnboardingSubmitSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   workspaceName: z.string().min(2, "Entity or Fund name must be valid"),
-  linkedinUrl: z.string().url("Must be a valid URL").optional(),
+  linkedinUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
 });
 
 export const LoginSchema = z.object({
