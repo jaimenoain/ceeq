@@ -3,6 +3,8 @@
 
 import { createClient } from '../../shared/lib/supabase/server';
 import { GetUniverseParams, UniverseListDTO, SourcingTargetDTO } from './types';
+import Papa from 'papaparse';
+import { normalizeDomain } from './lib/domain-utils';
 
 function formatRelativeTime(dateString: string): string {
   if (!dateString) return 'Unknown';
@@ -110,4 +112,122 @@ export async function getSourcingUniverseAction(
       totalPages,
     },
   };
+}
+
+export interface CsvUploadResult {
+  successCount: number;
+  skippedCount: number;
+  error?: string;
+}
+
+export async function uploadSourcingCsvAction(formData: FormData): Promise<CsvUploadResult> {
+  const supabase = createClient();
+
+  // 1. Auth Check
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { successCount: 0, skippedCount: 0, error: 'Unauthorized' };
+  }
+
+  // 2. Get Workspace ID
+  const { data: userProfile, error: profileError } = await supabase
+    .from('User')
+    .select('workspaceId')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError || !userProfile || !userProfile.workspaceId) {
+    return { successCount: 0, skippedCount: 0, error: 'Workspace not found' };
+  }
+  const workspaceId = userProfile.workspaceId;
+
+  // 3. Extract File and Config
+  const file = formData.get('file') as File;
+  const mappingConfigStr = formData.get('mappingConfig') as string;
+
+  if (!file) {
+    return { successCount: 0, skippedCount: 0, error: 'No file provided' };
+  }
+
+  let mappingConfig: Record<string, string> = {};
+  try {
+     if (mappingConfigStr) {
+        mappingConfig = JSON.parse(mappingConfigStr);
+     }
+  } catch (e) {
+      return { successCount: 0, skippedCount: 0, error: 'Invalid mapping config' };
+  }
+
+  // 4. Parse CSV
+  const fileContent = await file.text();
+  const parseResult = Papa.parse(fileContent, {
+    header: true,
+    skipEmptyLines: true,
+  });
+
+  const rows = parseResult.data as Record<string, string>[];
+  if (!rows || rows.length === 0) {
+      return { successCount: 0, skippedCount: 0, error: 'Empty CSV' };
+  }
+
+  // 5. Chunk and Upsert
+  let successCount = 0;
+  let skippedCount = 0;
+  const CHUNK_SIZE = 1000;
+
+  const mappedRows = rows.map(row => {
+      let name = '';
+      let domain = '';
+      let industry: string | null = null;
+
+      for (const [csvHeader, dbField] of Object.entries(mappingConfig)) {
+          const val = row[csvHeader];
+          if (val) {
+              if (dbField === 'name') name = val;
+              else if (dbField === 'domain') domain = val;
+              else if (dbField === 'industry') industry = val;
+          }
+      }
+
+      // Fallback strategies
+      if (!name && row['name']) name = row['name'];
+      if (!name && row['Name']) name = row['Name'];
+      if (!domain && row['domain']) domain = row['domain'];
+      if (!domain && row['Domain']) domain = row['Domain'];
+      if (!domain && row['Website']) domain = row['Website'];
+      if (!industry && row['industry']) industry = row['industry'];
+      if (!industry && row['Industry']) industry = row['Industry'];
+
+      return {
+          workspaceId,
+          domain: normalizeDomain(domain),
+          name: name || domain || 'Unknown',
+          industry,
+          status: 'UNTOUCHED' as const
+      };
+  }).filter(r => r.domain); // Filter out rows without domain
+
+  // 6. Processing Chunks
+  for (let i = 0; i < mappedRows.length; i += CHUNK_SIZE) {
+    const chunk = mappedRows.slice(i, i + CHUNK_SIZE);
+
+    const { data, error } = await supabase
+        .from('SourcingTarget')
+        .upsert(chunk, {
+            onConflict: 'workspaceId, domain',
+            ignoreDuplicates: true,
+        })
+        .select('id');
+
+    if (error) {
+        console.error('Error upserting chunk:', error);
+        return { successCount, skippedCount: skippedCount + (mappedRows.length - successCount), error: error.message };
+    }
+
+    const insertedCount = data?.length || 0;
+    successCount += insertedCount;
+    skippedCount += (chunk.length - insertedCount);
+  }
+
+  return { successCount, skippedCount };
 }
