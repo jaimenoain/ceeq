@@ -2,7 +2,7 @@
 import { getSourcingUniverseAction } from '../src/features/sourcing/actions';
 
 async function runVerification() {
-  console.log('Starting verification of getSourcingUniverseAction...');
+  console.log('Starting strict verification of getSourcingUniverseAction (Pagination, DTO, Isolation)...');
 
   // 1. Mock Data Setup
   const mockWorkspaceId = 'test-workspace-id';
