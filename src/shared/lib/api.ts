@@ -30,22 +30,8 @@ export const fetchWrapper = async (
 };
 
 const mockResponse = (data: unknown): Response => {
-  return {
-    ok: true,
+  return new Response(JSON.stringify(data), {
     status: 200,
-    statusText: 'OK',
-    headers: new Headers({ 'Content-Type': 'application/json' }),
-    json: async () => data,
-    text: async () => JSON.stringify(data),
-    // Minimal implementation of other methods/properties to satisfy Response interface partially
-    blob: async () => new Blob([JSON.stringify(data)]),
-    arrayBuffer: async () => new ArrayBuffer(0),
-    formData: async () => new FormData(),
-    body: null,
-    bodyUsed: false,
-    redirected: false,
-    type: 'default',
-    url: '',
-    clone: () => mockResponse(data),
-  } as unknown as Response;
+    headers: { 'Content-Type': 'application/json' },
+  });
 };
