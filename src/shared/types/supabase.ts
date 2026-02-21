@@ -91,6 +91,7 @@ export interface Database {
       }
       SourcingTarget: {
         Row: {
+          createdAt: string
           domain: string
           estimatedMargins: number | null
           estimatedRevenue: number | null
@@ -103,6 +104,7 @@ export interface Database {
           workspaceId: string
         }
         Insert: {
+          createdAt?: string
           domain: string
           estimatedMargins?: number | null
           estimatedRevenue?: number | null
@@ -115,6 +117,7 @@ export interface Database {
           workspaceId: string
         }
         Update: {
+          createdAt?: string
           domain?: string
           estimatedMargins?: number | null
           estimatedRevenue?: number | null

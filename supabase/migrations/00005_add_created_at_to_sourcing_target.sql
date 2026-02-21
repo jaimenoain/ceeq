@@ -1,0 +1,1 @@
+ALTER TABLE "SourcingTarget" ADD COLUMN "createdAt" timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
