@@ -9,21 +9,27 @@ const tests = [
   { path: '/searcher/dashboard', hasSession: false, wsType: null, expected: '/login' },
   { path: '/investor/deals', hasSession: false, wsType: null, expected: '/login' },
   { path: '/public', hasSession: false, wsType: null, expected: null }, // Public routes ignored
+  { path: '/login', hasSession: false, wsType: null, expected: null }, // Allow login page
 
   // 2. Authenticated, No Workspace
   { path: '/searcher/dashboard', hasSession: true, wsType: null, expected: '/onboarding' },
   { path: '/investor/dashboard', hasSession: true, wsType: null, expected: '/onboarding' },
   { path: '/onboarding', hasSession: true, wsType: null, expected: null }, // Allowed
+  { path: '/login', hasSession: true, wsType: null, expected: '/onboarding' }, // Redirect to onboarding if no workspace
 
   // 3. Searcher Access
   { path: '/investor/deals', hasSession: true, wsType: 'SEARCHER', expected: '/searcher/dashboard' }, // Wrong Role -> Dashboard
   { path: '/searcher/dashboard', hasSession: true, wsType: 'SEARCHER', expected: null }, // Correct Role -> Allow
   { path: '/searcher/deals', hasSession: true, wsType: 'SEARCHER', expected: null },
+  { path: '/login', hasSession: true, wsType: 'SEARCHER', expected: '/searcher/dashboard' }, // Redirect away from login
+  { path: '/signup', hasSession: true, wsType: 'SEARCHER', expected: '/searcher/dashboard' }, // Redirect away from signup
 
   // 4. Investor Access
   { path: '/searcher/deals', hasSession: true, wsType: 'INVESTOR', expected: '/investor/dashboard' }, // Wrong Role -> Dashboard
   { path: '/investor/dashboard', hasSession: true, wsType: 'INVESTOR', expected: null }, // Correct Role -> Allow
   { path: '/investor/deals', hasSession: true, wsType: 'INVESTOR', expected: null },
+  { path: '/login', hasSession: true, wsType: 'INVESTOR', expected: '/investor/dashboard' }, // Redirect away from login
+  { path: '/signup', hasSession: true, wsType: 'INVESTOR', expected: '/investor/dashboard' }, // Redirect away from signup
 ];
 
 let failures = 0;
