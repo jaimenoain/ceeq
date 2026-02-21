@@ -22,6 +22,7 @@ import {
 
 import { SourcingStatus } from '../types';
 import { fetchSourcingUniverse } from '../lib/mock-api';
+import { updateSearchParams } from '../lib/url-utils';
 import { columns } from './columns';
 import { DataTablePagination } from './data-table-pagination';
 import { DataTableToolbar } from './data-table-toolbar';
@@ -53,26 +54,13 @@ export function SourcingDataTable() {
   const [rowSelection, setRowSelection] = React.useState({});
 
   // Update URL helper
-  const createQueryString = React.useCallback(
-    (params: Record<string, string | number | null>) => {
-      const newSearchParams = new URLSearchParams(searchParams.toString());
-
-      for (const [key, value] of Object.entries(params)) {
-        if (value === null || value === undefined || value === '') {
-          newSearchParams.delete(key);
-        } else {
-          newSearchParams.set(key, String(value));
-        }
-      }
-
-      return newSearchParams.toString();
-    },
-    [searchParams]
-  );
-
   const updateUrl = (params: Record<string, string | number | null>) => {
-      const queryString = createQueryString(params);
-      router.push(`${pathname}?${queryString}`, { scroll: false });
+    // We cast searchParams to URLSearchParams because the util function expects it,
+    // and ReadonlyURLSearchParams is compatible with the constructor of URLSearchParams
+    // which is used inside the util function.
+    const currentParams = new URLSearchParams(searchParams.toString());
+    const queryString = updateSearchParams(currentParams, params);
+    router.push(`${pathname}?${queryString}`, { scroll: false });
   };
 
 
