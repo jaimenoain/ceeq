@@ -9,3 +9,8 @@ export const OnboardingSubmitSchema = z.object({
   workspaceName: z.string().min(2, "Entity or Fund name must be valid"),
   linkedinUrl: z.string().url("Must be a valid URL").optional(),
 });
+
+export const LoginSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
