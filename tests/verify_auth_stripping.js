@@ -12,6 +12,16 @@ const checks = [
     content: 'DummyAuthProvider',
   },
   {
+    type: 'file_content_contains',
+    path: 'src/app/layout.tsx',
+    content: 'ThemeProvider',
+  },
+  {
+    type: 'file_content_contains',
+    path: 'src/app/layout.tsx',
+    content: 'QueryProvider',
+  },
+  {
     type: 'file_content_does_not_contain',
     path: 'src/app/(auth)/login/page.tsx',
     content: 'NEXT_PUBLIC_USE_MOCKS',
@@ -45,11 +55,20 @@ checks.forEach((check) => {
         console.log(`PASS: File ${check.path} does not contain "${check.content}".`);
       }
     } else {
-      // If the file doesn't exist, this check is technically passed or irrelevant for content check,
-      // but if the file is expected to exist (like layout.tsx), we might want to flag it.
-      // However, the instructions imply these files should exist but not have the content.
-      // If the file is missing, the content is definitely not there.
       console.log(`PASS: File ${check.path} does not exist (so it doesn't contain "${check.content}").`);
+    }
+  } else if (check.type === 'file_content_contains') {
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      if (!content.includes(check.content)) {
+        console.error(`FAIL: File ${check.path} does not contain "${check.content}".`);
+        failed = true;
+      } else {
+        console.log(`PASS: File ${check.path} contains "${check.content}".`);
+      }
+    } else {
+      console.error(`FAIL: File ${check.path} does not exist.`);
+      failed = true;
     }
   }
 });
