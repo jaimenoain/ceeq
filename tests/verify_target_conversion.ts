@@ -1,12 +1,14 @@
 
 import { convertTargetToDeal } from '../src/features/deals/actions';
+import crypto from 'crypto';
 
-// Mock types based on the schema
+// Mock types based on strict Data Contracts
 type SourcingTarget = {
   id: string;
   workspaceId: string;
   domain: string;
   status: 'UNTOUCHED' | 'IN_SEQUENCE' | 'REPLIED' | 'ARCHIVED' | 'CONVERTED';
+  // name and industry removed
 };
 
 type Company = {
@@ -29,16 +31,31 @@ type Deal = {
 const createMockSupabase = (opts: any = {}) => {
   const {
     target = { id: 'target-1', workspaceId: 'ws-1', domain: 'example.com', status: 'REPLIED' },
-    existingCompany = null,
-    existingDeal = null,
-    companyInsertError = null,
-    dealInsertError = null,
-    targetUpdateError = null,
+    // Global collision simulation
+    collisionStage = null, // If set, RPC returns this stage
+    existingLocalCompany = null,
+    existingLocalDeal = null,
+    // Errors
+    rpcError = null,
   } = opts;
 
   return {
+    auth: {
+        getUser: async () => ({ data: { user: { id: 'user-1' } }, error: null })
+    },
     from: (table: string) => {
-      // Mock SourcingTarget table
+      // User Profile
+      if (table === 'User') {
+          return {
+              select: () => ({
+                  eq: () => ({
+                      single: async () => ({ data: { workspaceId: 'ws-1' }, error: null })
+                  })
+              })
+          }
+      }
+
+      // SourcingTarget
       if (table === 'SourcingTarget') {
         return {
           select: () => ({
@@ -51,70 +68,59 @@ const createMockSupabase = (opts: any = {}) => {
           }),
           update: (data: any) => ({
             eq: () => ({
-              error: targetUpdateError,
+              error: null,
             }),
           }),
         };
       }
 
-      // Mock Company table (Global Search & Insert)
+      // Company (Local Check & Insert)
       if (table === 'Company') {
         return {
-          select: () => ({
-            eq: (col: string, val: string) => {
-               // Simulate global search by hashedDomain
-               if (col === 'hashedDomain') {
-                 return {
-                   maybeSingle: async () => ({
-                     data: existingCompany,
-                     error: null,
-                   }),
-                   // Support single() as well if used
-                   single: async () => ({
-                     data: existingCompany,
-                     error: existingCompany ? null : { message: 'Not found' },
-                   })
-                 };
-               }
-               return {
-                 maybeSingle: async () => ({ data: null, error: null }),
-                 single: async () => ({ data: null, error: { message: 'Not found' } })
-               };
-            },
+          select: (cols: string) => ({
+            eq: (col1: string, val1: string) => ({
+                eq: (col2: string, val2: string) => ({
+                     maybeSingle: async () => {
+                         // Check matching logic for local company
+                         if (existingLocalCompany && val1 === existingLocalCompany.workspaceId && val2 === existingLocalCompany.hashedDomain) {
+                             return { data: existingLocalCompany, error: null };
+                         }
+                         return { data: null, error: null };
+                     }
+                })
+            })
           }),
           insert: (data: any) => ({
              select: () => ({
                single: async () => ({
-                 data: companyInsertError ? null : { id: 'company-new', ...data },
-                 error: companyInsertError,
+                 data: { id: 'company-new', ...data },
+                 error: null,
                }),
              }),
           }),
         };
       }
 
-      // Mock Deal table (Global Search & Insert)
+      // Deal (Local Check & Insert)
       if (table === 'Deal') {
         return {
-          select: () => ({
-            eq: (col: string, val: string) => {
-               // Simulate searching for deal by companyId
-               if (col === 'companyId') {
-                 // In a real scenario, this might return multiple deals, but for collision check we care if *any* active deal exists.
-                 // We'll mock it returning a list.
-                 return {
-                   data: existingDeal ? [existingDeal] : [],
-                   error: null,
-                 };
-               }
-               return { data: [], error: null };
-            }
+          select: (cols: string) => ({
+            eq: (col1: string, val1: string) => ({
+                eq: (col2: string, val2: string) => ({
+                     maybeSingle: async () => {
+                         if (existingLocalDeal && val1 === existingLocalDeal.workspaceId && val2 === existingLocalDeal.companyId) {
+                             return { data: existingLocalDeal, error: null };
+                         }
+                         return { data: null, error: null };
+                     }
+                })
+            })
           }),
           insert: (data: any) => ({
              select: () => ({
                single: async () => ({
-                 data: dealInsertError ? null : { id: 'deal-new', ...data },
-                 error: dealInsertError,
+                 data: { id: 'deal-new', ...data },
+                 error: null,
                }),
              }),
           }),
@@ -122,14 +128,21 @@ const createMockSupabase = (opts: any = {}) => {
       }
 
       return {
-        select: () => ({ eq: () => ({ single: () => ({ data: null, error: null }) }) }),
+        select: () => ({ eq: () => ({ single: () => ({ data: null, error: null }), maybeSingle: () => ({ data: null, error: null }) }) }),
         insert: () => ({ select: () => ({ single: () => ({ data: null, error: null }) }) }),
         update: () => ({ eq: () => ({ error: null }) }),
       };
     },
-    // Mock RPC if used for collision check
-    rpc: (func: string, args: any) => {
-      // If logic uses RPC for collision
+
+    rpc: async (func: string, args: any) => {
+      if (func === 'check_global_collision') {
+          if (rpcError) return { data: null, error: rpcError };
+
+          if (collisionStage) {
+              return { data: { collision: true, stage: collisionStage }, error: null };
+          }
+          return { data: null, error: null };
+      }
       return { data: null, error: null };
     }
   } as any;
@@ -138,16 +151,10 @@ const createMockSupabase = (opts: any = {}) => {
 async function runTests() {
   console.log('Running verification for convertTargetToDeal...');
 
-  // Test 1: Positive Assertion - Successful Conversion
+  // Test 1: Successful Conversion (No Collision)
   {
-    console.log('Test 1: Positive Assertion - Successful Conversion');
-    const mockSupabase = createMockSupabase(); // Default: target exists, no collision
-
-    // We assume the action takes the supabase client as first arg, or we use a wrapper.
-    // Based on `processOnboarding`, it likely takes (supabase, payload).
-    // Or if it's a server action directly, it might construct its own client.
-    // But for testability, we usually separate logic.
-    // Let's assume the signature: convertTargetToDeal(supabase, targetId)
+    console.log('Test 1: Successful Conversion (No Collision)');
+    const mockSupabase = createMockSupabase();
 
     try {
       const result = await convertTargetToDeal(mockSupabase, 'target-1');
@@ -169,32 +176,12 @@ async function runTests() {
     }
   }
 
-  // Test 2: Negative Assertion - Collision
+  // Test 2: Collision Blocked (Global NDA)
   {
-    console.log('Test 2: Negative Assertion - Collision');
-
-    // Setup collision scenario:
-    // Existing company with hashed domain
-    // Existing deal in NDA_SIGNED stage
-    const existingCompany = {
-      id: 'company-collision',
-      workspaceId: 'ws-other',
-      domain: 'example.com',
-      hashedDomain: 'hashed-example.com', // The logic should compute this hash and match
-    };
-
-    const existingDeal = {
-      id: 'deal-collision',
-      workspaceId: 'ws-other',
-      companyId: 'company-collision',
-      stage: 'NDA_SIGNED', // >= NDA_SIGNED -> Collision
-      status: 'ACTIVE',
-      visibilityTier: 'TIER_1_PRIVATE',
-    };
+    console.log('Test 2: Collision Blocked (Global NDA)');
 
     const mockSupabase = createMockSupabase({
-      existingCompany,
-      existingDeal,
+      collisionStage: 'NDA_SIGNED'
     });
 
     try {
@@ -212,10 +199,72 @@ async function runTests() {
 
       console.log('Test 2 Passed');
     } catch (e: any) {
-       // If it throws instead of returning error object, catch it here.
-       // Assuming it returns { error: ... } based on previous patterns.
        console.error('Test 2 Failed with exception:', e);
        process.exit(1);
+    }
+  }
+
+  // Test 3: Idempotency (Local Company Exists)
+  {
+    console.log('Test 3: Idempotency (Local Company Exists)');
+
+    const hashedDomain = crypto.createHash('sha256').update('example.com').digest('hex');
+    const existingLocalCompany = {
+        id: 'company-local',
+        workspaceId: 'ws-1',
+        hashedDomain
+    };
+
+    const mockSupabase = createMockSupabase({
+        existingLocalCompany,
+        collisionStage: 'NDA_SIGNED'
+    });
+
+    try {
+      const result = await convertTargetToDeal(mockSupabase, 'target-1');
+
+      if (!result.success) {
+        console.error('Test 3 Failed: Expected success (idempotent), got', result);
+        process.exit(1);
+      }
+
+      if (result.companyId !== 'company-local') {
+          console.error('Test 3 Failed: Expected to reuse company-local, got', result.companyId);
+          process.exit(1);
+      }
+
+      console.log('Test 3 Passed');
+    } catch (e: any) {
+        console.error('Test 3 Failed with exception:', e);
+        process.exit(1);
+    }
+  }
+
+  // Test 4: RPC Failure (Fail Closed)
+  {
+    console.log('Test 4: RPC Failure (Fail Closed)');
+
+    const mockSupabase = createMockSupabase({
+        rpcError: { message: 'RPC Timeout' }
+    });
+
+    try {
+        const result = await convertTargetToDeal(mockSupabase, 'target-1');
+
+        if (result.success) {
+            console.error('Test 4 Failed: Expected failure due to RPC error, but got success');
+            process.exit(1);
+        }
+
+        if (result.error !== 'System error during collision check. Please try again later.') {
+            console.error(`Test 4 Failed: Expected specific system error, got "${result.error}"`);
+            process.exit(1);
+        }
+
+        console.log('Test 4 Passed');
+    } catch (e: any) {
+        console.error('Test 4 Failed with exception:', e);
+        process.exit(1);
     }
   }
 
