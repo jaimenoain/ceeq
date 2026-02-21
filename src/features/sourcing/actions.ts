@@ -154,7 +154,7 @@ export async function uploadSourcingCsvAction(formData: FormData): Promise<CsvUp
      if (mappingConfigStr) {
         mappingConfig = JSON.parse(mappingConfigStr);
      }
-  } catch (e) {
+  } catch {
       return { successCount: 0, skippedCount: 0, error: 'Invalid mapping config' };
   }
 
