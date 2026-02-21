@@ -33,6 +33,7 @@ async function runTest() {
 
     // 2. Dynamic Import
     // We use a query parameter to bypass cache if re-running in same process (unlikely here but safe)
+    // @ts-ignore
     const { middleware } = await import('./temp_middleware');
 
     // 3. Execution Logic
