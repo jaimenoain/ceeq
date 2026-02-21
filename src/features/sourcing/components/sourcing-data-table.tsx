@@ -81,8 +81,8 @@ export function SourcingDataTable() {
     updateUrl({ search: value, page: 1 }); // Reset to page 1 on search
   };
 
-  const handleStatusChange = (value: SourcingStatus | 'ALL') => {
-    updateUrl({ status: value === 'ALL' ? null : value, page: 1 });
+  const handleStatusChange = (value: SourcingStatus | undefined) => {
+    updateUrl({ status: value || null, page: 1 });
   };
 
   // Pagination handler via table state
@@ -117,8 +117,9 @@ export function SourcingDataTable() {
       <DataTableToolbar
         searchTerm={search}
         onSearchChange={handleSearchChange}
-        statusFilter={status || 'ALL'}
+        statusFilter={status}
         onStatusChange={handleStatusChange}
+        table={table}
       />
       <div className="rounded-md border">
         <Table>
