@@ -26,6 +26,7 @@ function formatRelativeTime(dateString: string): string {
 
 export async function getSourcingUniverseAction(
   params: GetUniverseParams,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mockClient?: any
 ): Promise<UniverseListDTO> {
   const supabase = mockClient || createClient();
@@ -89,6 +90,7 @@ export async function getSourcingUniverseAction(
   }
 
   // 4. Map to DTO
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sourcingTargets: SourcingTargetDTO[] = (data || []).map((row: any) => ({
     id: row.id,
     name: row.name,
