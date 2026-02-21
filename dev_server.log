@@ -1,0 +1,21 @@
+
+> new_app@0.1.0 dev
+> next dev
+
+ ⚠ Port 3000 is in use, trying 3001 instead.
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3001
+
+ ✓ Starting...
+ ✓ Ready in 1730ms
+ ○ Compiling /src/middleware ...
+ ✓ Compiled /src/middleware in 1392ms (122 modules)
+ ○ Compiling /searcher/universe ...
+ ✓ Compiled /searcher/universe in 8.3s (928 modules)
+ GET /searcher/universe 200 in 9101ms
+ ✓ Compiled in 911ms (442 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (133kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled in 384ms (442 modules)
+ ✓ Compiled /searcher/universe in 316ms (468 modules)
+ GET /searcher/universe 200 in 623ms
+ GET /searcher/universe 200 in 64ms
