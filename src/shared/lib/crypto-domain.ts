@@ -26,10 +26,11 @@ export function normalizeDomain(url: string): string {
     domain = domain.substring(0, slashIndex);
   }
 
-  // Also remove query parameters if they exist without a slash (e.g., domain.com?q=1)
-  // Although the requirement says "paths/query parameters", usually query params start with ?
-  // The test cases use paths with /, so likely just stripping after / is sufficient based on test 1.
-  // "https://www.acme.com/about" -> "acme.com"
+  // 4. Remove query parameters if they exist without a slash (e.g., domain.com?q=1)
+  const queryIndex = domain.indexOf('?');
+  if (queryIndex !== -1) {
+    domain = domain.substring(0, queryIndex);
+  }
 
   return domain;
 }

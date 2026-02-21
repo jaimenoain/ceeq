@@ -41,6 +41,17 @@ async function verify() {
     throw e;
   }
 
+  // Test case 4: Strips query parameters without slash
+  const test4 = 'acme.com?foo=bar';
+  const expected4 = 'acme.com';
+  try {
+    assert.strictEqual(normalizeDomain(test4), expected4, `Failed to strip query params from ${test4}`);
+    console.log('Passed: Query parameters stripping');
+  } catch (e) {
+    console.error(`Failed: Query parameters stripping. Expected ${expected4}, got ${normalizeDomain(test4)}`);
+    throw e;
+  }
+
   console.log('Verifying hashDomain...');
 
   // Set mock secret for hashing tests
