@@ -1,5 +1,4 @@
 import assert from 'node:assert';
-// This import is expected to fail initially as the file does not exist yet.
 // @ts-ignore
 import { normalizeDomain, hashDomain } from '../src/shared/lib/crypto-domain';
 
@@ -54,9 +53,6 @@ async function verify() {
 
   console.log('Verifying hashDomain...');
 
-  // Set mock secret for hashing tests
-  process.env.DOMAIN_HASH_SECRET = 'test-secret-123';
-
   const domain = 'acme.com';
   let hash1, hash2;
 
@@ -86,20 +82,27 @@ async function verify() {
     throw e;
   }
 
-  // Verify missing secret handling
-  console.log('Verifying missing DOMAIN_HASH_SECRET behavior...');
-  delete process.env.DOMAIN_HASH_SECRET;
+  // Verify consistent hashing across different formats
+  console.log('Verifying consistency across formats...');
+  const raw1 = 'https://www.Example.com/';
+  const raw2 = 'http://example.com';
+  const raw3 = 'example.com';
 
-  try {
-    hashDomain(domain);
-    assert.fail('Should have thrown an error when DOMAIN_HASH_SECRET is missing');
-  } catch (error: any) {
-    if (error.code === 'ERR_ASSERTION') {
-        throw error;
-    }
-    // We expect an error here
-    console.log('Passed: Throws on missing secret');
-  }
+  const n1 = normalizeDomain(raw1);
+  const n2 = normalizeDomain(raw2);
+  const n3 = normalizeDomain(raw3);
+
+  assert.strictEqual(n1, 'example.com');
+  assert.strictEqual(n2, 'example.com');
+  assert.strictEqual(n3, 'example.com');
+
+  const h1 = hashDomain(n1);
+  const h2 = hashDomain(n2);
+  const h3 = hashDomain(n3);
+
+  assert.strictEqual(h1, h2, 'https://www.Example.com/ hash mismatch');
+  assert.strictEqual(h1, h3, 'example.com hash mismatch');
+  console.log('Passed: Consistent hashing across formats');
 
   console.log('All verifications passed!');
 }
