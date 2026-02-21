@@ -52,3 +52,21 @@ export interface SharedDealCardDTO {
     marginPercent: number | null;
   };
 }
+
+// SOURCING UNIVERSE DTOs
+export interface SourcingTargetDTO {
+  id: string;
+  name: string;
+  domain: string;
+  status: SourcingStatus;
+  addedRelative: string;
+}
+
+export interface UniverseListDTO {
+  data: SourcingTargetDTO[];
+  meta: {
+    totalCount: number;
+    currentPage: number;
+    totalPages: number;
+  };
+}
