@@ -313,7 +313,7 @@ Ceeq operates under strict NDAs and privacy firewalls. Security is not an aftert
 * **Strategy:** The system MUST use NextAuth.js (Auth.js) configured with a secure JWT strategy.  
 * **Middleware Execution:** middleware.ts MUST intercept all requests to protected routes.  
   * If a user lacking a session attempts to access /(searcher|investor)/\*, redirect to /login.  
-  * If a user with a SEARCHER workspace type attempts to access /investor/\*, immediately throw a 403 Forbidden or redirect to /searcher/dashboard.
+  * If a user with a SEARCHER workspaceType attempts to access /investor/\*, immediately throw a 403 Forbidden or redirect to /searcher/dashboard.
 
 ### **Row Level Security (RLS) & Authorization Logic**
 
