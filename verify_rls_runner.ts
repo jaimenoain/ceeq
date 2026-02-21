@@ -47,6 +47,16 @@ async function verifyRLS() {
     await db.exec(schemaSql);
     console.log('✅ Core Schema Applied');
 
+    // 2.1 Load Migration 00002
+    let migration2 = fs.readFileSync('supabase/migrations/00002_fix_workspace_creation.sql', 'utf8');
+    await db.exec(migration2);
+    console.log('✅ Migration 00002 Applied');
+
+    // 2.2 Load Migration 00003
+    let migration3 = fs.readFileSync('supabase/migrations/00003_allow_user_insert.sql', 'utf8');
+    await db.exec(migration3);
+    console.log('✅ Migration 00003 Applied');
+
     // 3. Run Verification Script
     const verifySql = fs.readFileSync('verify_rls.sql', 'utf8');
     await db.exec(verifySql);
