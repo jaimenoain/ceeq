@@ -33,6 +33,8 @@ export const MOCK_SEARCHER_PIPELINE: PipelineDTO = {
         id: "deal_x192",
         companyName: "Alpha Mfg",
         visibilityTier: "TIER_1_PRIVATE",
+        privacyTier: "Tier 1",
+        industry: "Manufacturing",
         updatedAtRelative: "2 days ago",
         assignedAnalystInitials: ["JV", "SM"]
       }
@@ -42,6 +44,8 @@ export const MOCK_SEARCHER_PIPELINE: PipelineDTO = {
         id: "deal_9f8a",
         companyName: "Acme Logistics",
         visibilityTier: "TIER_1_PRIVATE",
+        privacyTier: "Tier 1",
+        industry: "Logistics",
         updatedAtRelative: "5 hours ago",
         assignedAnalystInitials: ["JV"]
       }
