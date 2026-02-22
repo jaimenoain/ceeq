@@ -42,7 +42,13 @@ export function SourcingDataTable() {
   // React Query
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['sourcing-universe', { page, limit, search, status }],
-    queryFn: () => getSourcingUniverseAction({ page, limit, search, status }),
+    queryFn: async () => {
+      const result = await getSourcingUniverseAction({ page, limit, search, status });
+      if (!result) {
+        throw new Error('Received undefined data from server action');
+      }
+      return result;
+    },
     placeholderData: (previousData) => previousData,
   });
 
