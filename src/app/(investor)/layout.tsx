@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import React from 'react';
+import { LogoutButton } from '@/features/auth/components/logout-button';
 
 export default function InvestorLayout({
   children,
@@ -21,9 +22,9 @@ export default function InvestorLayout({
           </Link>
         </nav>
         <div className="border-t border-slate-700 pt-4">
-          <button className="w-full text-left p-2 hover:bg-slate-800 rounded text-red-400">
+          <LogoutButton className="w-full text-left p-2 hover:bg-slate-800 rounded text-red-400">
             Logout
-          </button>
+          </LogoutButton>
         </div>
       </aside>
       <main className="flex-1 overflow-auto p-8">

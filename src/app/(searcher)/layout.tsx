@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import React from 'react';
+import { LogoutButton } from '@/features/auth/components/logout-button';
 
 export default function SearcherLayout({
   children,
@@ -24,9 +25,9 @@ export default function SearcherLayout({
           </Link>
         </nav>
         <div className="border-t border-slate-200 pt-4">
-          <button className="w-full text-left p-2 hover:bg-slate-100 rounded text-red-600">
+          <LogoutButton className="w-full text-left p-2 hover:bg-slate-100 rounded text-red-600">
             Logout
-          </button>
+          </LogoutButton>
         </div>
       </aside>
       <main className="flex-1 overflow-auto p-8">
