@@ -7,16 +7,18 @@ import { kanbanReducer } from '@/features/deals/lib/kanban-reducer';
 import { STAGES } from '@/features/deals/constants';
 import { KanbanColumn } from './KanbanColumn';
 import { DealCard } from './DealCard';
+import { useToast } from "@/shared/hooks/use-toast";
 
 interface KanbanBoardWrapperProps {
   initialDeals: Deal[];
-  onDealMove: (dealId: string, newStage: DealStage, oldStage: DealStage) => void;
+  onDealMove: (dealId: string, newStage: DealStage, oldStage: DealStage) => Promise<void>;
 }
 
 export function KanbanBoardWrapper({ initialDeals, onDealMove }: KanbanBoardWrapperProps) {
   const [deals, dispatch] = useOptimistic(initialDeals, kanbanReducer);
+  const { toast } = useToast();
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
 
     if (!over) {
@@ -42,8 +44,20 @@ export function KanbanBoardWrapper({ initialDeals, onDealMove }: KanbanBoardWrap
       payload: { dealId, targetStage: newStage }
     });
 
-    // Notify parent
-    onDealMove(dealId, newStage, oldStage);
+    try {
+      // Notify parent
+      await onDealMove(dealId, newStage, oldStage);
+    } catch (error) {
+      dispatch({
+        action: 'REVERT_MOVE',
+        payload: { dealId, previousStage: oldStage }
+      });
+      toast({
+        title: "Sync Error",
+        description: "Check connection.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

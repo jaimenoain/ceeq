@@ -32,6 +32,9 @@ export interface KanbanDealDTO {
   id: string;
   companyName: string;
   visibilityTier: VisibilityTier;
+  privacyTier: 'Tier 1' | 'Tier 2';
+  industry: string | null;
+  fitScore?: number;
   updatedAtRelative: string;
   assignedAnalystInitials: string[];
 }

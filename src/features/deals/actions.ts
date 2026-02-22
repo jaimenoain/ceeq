@@ -217,7 +217,7 @@ export async function getPipelineAction(workspaceId: string, mockClient?: any): 
       status,
       visibilityTier,
       createdAt,
-      company:Company(name)
+      company:Company(name, industry)
     `)
     .eq('workspaceId', workspaceId)
     .eq('status', 'ACTIVE');
@@ -232,7 +232,9 @@ export async function getPipelineAction(workspaceId: string, mockClient?: any): 
   const kanbanDeals: (KanbanDealDTO & { stage: DealStage })[] = deals.map((deal: any) => ({
     id: deal.id,
     companyName: deal.company?.name || 'Unknown',
+    industry: deal.company?.industry || null,
     visibilityTier: deal.visibilityTier,
+    privacyTier: deal.visibilityTier === 'TIER_1_PRIVATE' ? 'Tier 1' : 'Tier 2',
     updatedAtRelative: formatRelativeTime(deal.createdAt),
     assignedAnalystInitials: [], // Placeholder for future feature
     stage: deal.stage,
@@ -253,7 +255,9 @@ export async function getPipelineAction(workspaceId: string, mockClient?: any): 
       columns[deal.stage].push({
         id: deal.id,
         companyName: deal.companyName,
+        industry: deal.industry,
         visibilityTier: deal.visibilityTier,
+        privacyTier: deal.privacyTier,
         updatedAtRelative: deal.updatedAtRelative,
         assignedAnalystInitials: deal.assignedAnalystInitials,
       });
