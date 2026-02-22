@@ -110,8 +110,9 @@ export async function convertTargetToDeal(
         .insert({
             workspaceId,
             domain: target.domain,
-            hashedDomain
-            // name and industry removed to comply with strict Data Contracts
+            hashedDomain,
+            name: target.name
+            // industry removed to comply with strict Data Contracts
         })
         .select('id')
         .single();
