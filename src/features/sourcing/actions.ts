@@ -5,6 +5,7 @@ import { createClient } from '../../shared/lib/supabase/server';
 import { GetUniverseParams, UniverseListDTO, SourcingTargetDTO } from './types';
 import Papa from 'papaparse';
 import { normalizeDomain } from './lib/domain-utils';
+import { fetchSourcingUniverse } from './lib/mock-api';
 
 function formatRelativeTime(dateString: string): string {
   if (!dateString) return 'Unknown';
@@ -31,6 +32,10 @@ export async function getSourcingUniverseAction(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mockClient?: any
 ): Promise<UniverseListDTO> {
+  if (process.env.NEXT_PUBLIC_USE_MOCKS === 'true') {
+    return fetchSourcingUniverse(params);
+  }
+
   const supabase = mockClient || createClient();
 
   // 1. Get User Session

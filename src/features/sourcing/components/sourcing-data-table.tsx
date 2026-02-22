@@ -21,7 +21,7 @@ import {
 } from '@/shared/components/ui/table';
 
 import { SourcingStatus } from '../types';
-import { fetchSourcingUniverse } from '../lib/mock-api';
+import { getSourcingUniverseAction } from '../actions';
 import { updateSearchParams } from '../lib/url-utils';
 import { columns } from './columns';
 import { DataTablePagination } from './data-table-pagination';
@@ -42,7 +42,7 @@ export function SourcingDataTable() {
   // React Query
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['sourcing-universe', { page, limit, search, status }],
-    queryFn: () => fetchSourcingUniverse({ page, limit, search, status }),
+    queryFn: () => getSourcingUniverseAction({ page, limit, search, status }),
     placeholderData: (previousData) => previousData,
   });
 
