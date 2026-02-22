@@ -65,7 +65,7 @@ export function CompanyFirmographicsForm({
       if (!result.success) {
         setError(result.error || 'Failed to update firmographics');
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setIsSubmitting(false);
