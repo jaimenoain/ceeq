@@ -19,7 +19,7 @@ export default async function SearcherPipelinePage() {
 
   const pipelineDTO = await getPipelineAction(userProfile.workspaceId);
 
-  // Flatten and map to Deal[]
+  // Transform to UI Model (Deal)
   const initialDeals: Deal[] = [];
   for (const [stage, dtos] of Object.entries(pipelineDTO.columns)) {
     for (const dto of dtos) {

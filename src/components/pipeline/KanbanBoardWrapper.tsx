@@ -48,10 +48,12 @@ export function KanbanBoardWrapper({ initialDeals, onDealMove }: KanbanBoardWrap
       // Notify parent
       await onDealMove(dealId, newStage, oldStage);
     } catch (error) {
+      // Rollback optimistic update
       dispatch({
         action: 'REVERT_MOVE',
         payload: { dealId, previousStage: oldStage }
       });
+      // Show error toast
       toast({
         title: "Sync Error",
         description: "Check connection.",
