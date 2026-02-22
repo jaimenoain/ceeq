@@ -323,7 +323,7 @@ These are the strict, non-negotiable logical rules governing Ceeq:
 * \+1  
 * **Financial Contamination Lock:** Data extracted via the AI OCR engine remains in a temporary state. It cannot be used in dashboard aggregate calculations or shared to the Investor OS until FinancialRecord.isVerifiedByHuman \=== true.  
 * \+1  
-* **Collision Hash Salting:** The hashedDomain on the Company model MUST utilize a single, global pepper algorithm (rather than per-workspace salts) to allow the system to silently detect cross-workspace overlap (Traffic Light Alerts) without breaking NDA walls.  
+* **Collision Hash Salting:** The hashedDomain on the Company model MUST utilize a single, global pepper algorithm (rather than per-workspace salts) to allow the system to silently detect cross-workspace overlap (Traffic Light Alerts) without breaking NDA walls. This is enforced via the `check_global_collision` RPC.
 * \+2  
 * **The Single Active Deal Rule:** While a Company can have multiple historical Deals mapped to it (1:N), a Workspace cannot have more than one Deal where status \=== ACTIVE linked to the same CompanyId simultaneously.  
 * \+1  

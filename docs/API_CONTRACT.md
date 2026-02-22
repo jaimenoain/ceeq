@@ -6,7 +6,7 @@
 | :---- | :---- | :---- | :---- |
 | POST | /api/auth/onboarding | Complete user/workspace creation | OnboardingForm.tsx |
 | GET | /api/searcher/dashboard | High-level metrics & recent deals | SearcherDashboard.tsx |
-| GET | /api/searcher/universe | Paginated raw sourcing targets | DataTable.tsx |
+| GET | /api/searcher/universe | Paginated raw sourcing targets (Sorted by CreatedAt DESC) | DataTable.tsx |
 | GET | /api/searcher/pipeline | Kanban board columns & cards | KanbanBoardWrapper.tsx |
 | PATCH | /api/searcher/deals/:id/tier | Upgrade deal to Tier 2 | VisibilityModal.tsx \+2 |
 | PUT | /api/searcher/deals/:id/financials | Save AI OCR validation data | AIExtraction.tsx |

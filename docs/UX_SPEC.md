@@ -480,6 +480,7 @@ AppLayout (flex, h-screen, bg-slate-50, overflow-hidden)
 
 * **State: FETCHING** \-\> Data is being retrieved based on current filter/pagination state.  
   * *UI:* The TableBody renders 10 Skeleton rows mimicking the table structure to prevent layout shift.  
+  * *Note:* Targets with status 'CONVERTED' are excluded by default to keep the universe focused on active sourcing.
 * **State: IDLE (Data Populated)** \-\> User can browse and interact.  
 * **State: FILTERING** \-\> User types in the search input or selects a dropdown.  
   * *Logic:* Triggers a debounce (300ms) \-\> Transitions back to **FETCHING**.  
