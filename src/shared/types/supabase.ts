@@ -12,25 +12,31 @@ export interface Database {
       Company: {
         Row: {
           domain: string
+          employees: number | null
           hashedDomain: string
           id: string
           industry: string | null
+          location: string | null
           name: string
           workspaceId: string
         }
         Insert: {
           domain: string
+          employees?: number | null
           hashedDomain: string
           id?: string
           industry?: string | null
+          location?: string | null
           name: string
           workspaceId: string
         }
         Update: {
           domain?: string
+          employees?: number | null
           hashedDomain?: string
           id?: string
           industry?: string | null
+          location?: string | null
           name?: string
           workspaceId?: string
         }
@@ -46,27 +52,33 @@ export interface Database {
       }
       Deal: {
         Row: {
+          askingPrice: number | null
           companyId: string
           createdAt: string
           id: string
+          lossReason: string | null
           stage: Database["public"]["Enums"]["DealStage"]
           status: Database["public"]["Enums"]["DealStatus"]
           visibilityTier: Database["public"]["Enums"]["VisibilityTier"]
           workspaceId: string
         }
         Insert: {
+          askingPrice?: number | null
           companyId: string
           createdAt?: string
           id?: string
+          lossReason?: string | null
           stage?: Database["public"]["Enums"]["DealStage"]
           status?: Database["public"]["Enums"]["DealStatus"]
           visibilityTier?: Database["public"]["Enums"]["VisibilityTier"]
           workspaceId: string
         }
         Update: {
+          askingPrice?: number | null
           companyId?: string
           createdAt?: string
           id?: string
+          lossReason?: string | null
           stage?: Database["public"]["Enums"]["DealStage"]
           status?: Database["public"]["Enums"]["DealStatus"]
           visibilityTier?: Database["public"]["Enums"]["VisibilityTier"]
