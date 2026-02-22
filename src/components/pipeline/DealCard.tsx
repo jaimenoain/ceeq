@@ -1,5 +1,8 @@
+"use client";
+
 import React from 'react';
 import { useDraggable } from '@dnd-kit/core';
+import { useRouter } from 'next/navigation';
 import { Deal } from "@/features/deals/types";
 import { Card, CardHeader, CardTitle, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
@@ -19,6 +22,7 @@ interface DealCardProps {
 }
 
 export function DealCard({ deal, onArchive }: DealCardProps) {
+  const router = useRouter();
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: deal.id,
     data: deal,
@@ -34,6 +38,7 @@ export function DealCard({ deal, onArchive }: DealCardProps) {
       style={style}
       {...listeners}
       {...attributes}
+      onClick={() => router.push(`/searcher/deals/${deal.id}`)}
       className={cn(
         "w-full mb-2 cursor-grab hover:shadow-md transition-shadow touch-none active:cursor-grabbing group relative",
         isDragging ? "opacity-50 ring-2 ring-primary rotate-2 z-50 shadow-xl" : ""

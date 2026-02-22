@@ -1,0 +1,17 @@
+
+> new_app@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+ ✓ Ready in 1864ms
+ ✓ Compiled /src/middleware in 324ms (122 modules)
+ ○ Compiling /searcher/pipeline ...
+ ✓ Compiled /searcher/pipeline in 4s (1242 modules)
+ GET /searcher/pipeline 200 in 4745ms
+ ✓ Compiled in 821ms (569 modules)
+ ○ Compiling /searcher/deals/[id] ...
+ ✓ Compiled /searcher/deals/[id] in 1829ms (1256 modules)
+ ✓ Compiled in 536ms (1270 modules)
