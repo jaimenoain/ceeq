@@ -480,7 +480,7 @@ export async function updateCompanyFirmographicsAction(payload: {
   location?: string | null;
   employees?: number | null;
   industry?: string | null;
-}, mockClient?: any): Promise<{ success: boolean; error?: string }> {
+}, mockClient?: any): Promise<{ success: boolean; error?: string }> { // eslint-disable-line @typescript-eslint/no-explicit-any
   const supabase = mockClient || createClient();
   const parseResult = UpdateCompanyFirmographicsSchema.safeParse(payload);
 
@@ -541,7 +541,7 @@ export async function updateDealFinancialsAction(payload: {
   ebitdaLtm?: number | null;
   marginPercent?: number | null;
   askingPrice?: number | null;
-}, mockClient?: any): Promise<{ success: boolean; error?: string }> {
+}, mockClient?: any): Promise<{ success: boolean; error?: string }> { // eslint-disable-line @typescript-eslint/no-explicit-any
   const supabase = mockClient || createClient();
   const parseResult = UpdateDealFinancialsSchema.safeParse(payload);
 
