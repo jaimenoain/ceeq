@@ -140,11 +140,6 @@ export interface CsvUploadResult {
 }
 
 export async function uploadSourcingCsvAction(formData: FormData): Promise<CsvUploadResult> {
-  if (process.env.NEXT_PUBLIC_USE_MOCKS === 'true') {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    return { successCount: 2, skippedCount: 0 };
-  }
-
   const supabase = createClient();
 
   // 1. Auth Check
