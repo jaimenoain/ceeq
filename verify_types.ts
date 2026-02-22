@@ -45,7 +45,9 @@ const company: Tables['Company']['Row'] = {
   name: 'Test Company',
   domain: 'example.com',
   hashedDomain: 'hash',
-  industry: null
+  industry: null,
+  location: null,
+  employees: null
 };
 
 const deal: Tables['Deal']['Row'] = {
@@ -55,7 +57,9 @@ const deal: Tables['Deal']['Row'] = {
   stage: 'INBOX',
   status: 'ACTIVE',
   visibilityTier: 'TIER_1_PRIVATE',
-  createdAt: new Date().toISOString()
+  createdAt: new Date().toISOString(),
+  lossReason: null,
+  askingPrice: null
 };
 
 // 4. Verify Insert Types (Optional fields)
