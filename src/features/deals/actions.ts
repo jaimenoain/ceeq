@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '../../shared/lib/supabase/server';
 import { normalizeDomain, hashDomain } from '../../shared/lib/crypto-domain';
+import { formatRelativeTime } from '../../shared/lib/utils';
+import { DealStage, KanbanDealDTO, PipelineDTO } from '../../shared/types/api';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseClient = any; // Using any for mock compatibility, or import proper type
@@ -196,4 +198,237 @@ export async function convertTargetToDealAction(targetId: string): Promise<Conve
   }
 
   return result;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function fetchPipeline(mockClient?: any): Promise<PipelineDTO> {
+  const supabase = mockClient || createClient();
+
+  if (process.env.NEXT_PUBLIC_USE_MOCKS === 'true') {
+     // Mock data
+     return {
+        columns: {
+           INBOX: [],
+           NDA_SIGNED: [],
+           CIM_REVIEW: [],
+           LOI_ISSUED: [],
+           DUE_DILIGENCE: [],
+           CLOSED_WON: [],
+        }
+     };
+  }
+
+  // 1. Get User Session
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    throw new Error('Unauthorized');
+  }
+
+  // 2. Get Workspace ID
+  const { data: userProfile, error: profileError } = await supabase
+    .from('User')
+    .select('workspaceId')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError || !userProfile || !userProfile.workspaceId) {
+    throw new Error('Workspace not found');
+  }
+
+  const workspaceId = userProfile.workspaceId;
+
+  // 3. Fetch Deals
+  const { data: deals, error: dealsError } = await supabase
+    .from('Deal')
+    .select(`
+      id,
+      stage,
+      status,
+      visibilityTier,
+      createdAt,
+      company:Company(name)
+    `)
+    .eq('workspaceId', workspaceId)
+    .eq('status', 'ACTIVE');
+
+  if (dealsError) {
+    console.error('Error fetching pipeline deals:', dealsError);
+    throw new Error('Failed to fetch pipeline deals');
+  }
+
+  // 4. Map to DTO
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const kanbanDeals: (KanbanDealDTO & { stage: DealStage })[] = deals.map((deal: any) => ({
+    id: deal.id,
+    companyName: deal.company?.name || 'Unknown',
+    visibilityTier: deal.visibilityTier,
+    updatedAtRelative: formatRelativeTime(deal.createdAt),
+    assignedAnalystInitials: [], // TODO: Implement assignment logic when schema supports it
+    stage: deal.stage,
+  }));
+
+  // 5. Group by Stage
+  const columns: Record<DealStage, KanbanDealDTO[]> = {
+    INBOX: [],
+    NDA_SIGNED: [],
+    CIM_REVIEW: [],
+    LOI_ISSUED: [],
+    DUE_DILIGENCE: [],
+    CLOSED_WON: [],
+  };
+
+  kanbanDeals.forEach(deal => {
+    if (columns[deal.stage]) {
+      columns[deal.stage].push({
+        id: deal.id,
+        companyName: deal.companyName,
+        visibilityTier: deal.visibilityTier,
+        updatedAtRelative: deal.updatedAtRelative,
+        assignedAnalystInitials: deal.assignedAnalystInitials,
+      });
+    }
+  });
+
+  return { columns };
+}
+
+const UpdateDealStageSchema = z.object({
+  dealId: z.string(),
+  stage: z.enum(['INBOX', 'NDA_SIGNED', 'CIM_REVIEW', 'LOI_ISSUED', 'DUE_DILIGENCE', 'CLOSED_WON']),
+});
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function updateDealStage(dealId: string, stage: DealStage, mockClient?: any): Promise<{ success: boolean; error?: string }> {
+  const supabase = mockClient || createClient();
+
+  if (process.env.NEXT_PUBLIC_USE_MOCKS === 'true') {
+     revalidatePath('/searcher/pipeline');
+     return { success: true };
+  }
+
+  const parseResult = UpdateDealStageSchema.safeParse({ dealId, stage });
+  if (!parseResult.success) {
+     return { success: false, error: 'Invalid input' };
+  }
+
+  // 1. Get User Session
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  // 2. Get Workspace ID
+  const { data: userProfile, error: profileError } = await supabase
+    .from('User')
+    .select('workspaceId')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError || !userProfile || !userProfile.workspaceId) {
+    return { success: false, error: 'Workspace not found' };
+  }
+  const workspaceId = userProfile.workspaceId;
+
+  // 3. Update Deal
+  const { error } = await supabase
+    .from('Deal')
+    .update({ stage })
+    .eq('id', dealId)
+    .eq('workspaceId', workspaceId);
+
+  if (error) {
+    console.error('Error updating deal stage:', error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath('/searcher/pipeline');
+  return { success: true };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function archiveDeal(dealId: string, mockClient?: any): Promise<{ success: boolean; error?: string }> {
+  const supabase = mockClient || createClient();
+
+  if (process.env.NEXT_PUBLIC_USE_MOCKS === 'true') {
+     revalidatePath('/searcher/pipeline');
+     return { success: true };
+  }
+
+  // 1. Get User Session
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  // 2. Get Workspace ID
+  const { data: userProfile, error: profileError } = await supabase
+    .from('User')
+    .select('workspaceId')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError || !userProfile || !userProfile.workspaceId) {
+    return { success: false, error: 'Workspace not found' };
+  }
+  const workspaceId = userProfile.workspaceId;
+
+  const { error } = await supabase
+    .from('Deal')
+    .update({ status: 'ARCHIVED' })
+    .eq('id', dealId)
+    .eq('workspaceId', workspaceId);
+
+  if (error) {
+    console.error('Error archiving deal:', error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath('/searcher/pipeline');
+  return { success: true };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function loseDeal(dealId: string, lossReason: string, mockClient?: any): Promise<{ success: boolean; error?: string }> {
+  const supabase = mockClient || createClient();
+
+  if (process.env.NEXT_PUBLIC_USE_MOCKS === 'true') {
+     revalidatePath('/searcher/pipeline');
+     return { success: true };
+  }
+
+  if (!lossReason) {
+      return { success: false, error: 'Loss reason is required' };
+  }
+
+  // 1. Get User Session
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  // 2. Get Workspace ID
+  const { data: userProfile, error: profileError } = await supabase
+    .from('User')
+    .select('workspaceId')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError || !userProfile || !userProfile.workspaceId) {
+    return { success: false, error: 'Workspace not found' };
+  }
+  const workspaceId = userProfile.workspaceId;
+
+  const { error } = await supabase
+    .from('Deal')
+    .update({ status: 'LOST', lossReason })
+    .eq('id', dealId)
+    .eq('workspaceId', workspaceId);
+
+  if (error) {
+    console.error('Error marking deal as lost:', error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath('/searcher/pipeline');
+  return { success: true };
 }
