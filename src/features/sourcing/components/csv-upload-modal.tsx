@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { FileText, X, Loader2 } from 'lucide-react';
 import Papa from 'papaparse';
 import {
@@ -41,6 +42,7 @@ export function CsvUploadModal({ children }: CsvUploadModalProps) {
   }>({});
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -119,6 +121,7 @@ export function CsvUploadModal({ children }: CsvUploadModalProps) {
           title: 'Import Successful',
           description: `Successfully imported ${result.successCount} targets. Skipped ${result.skippedCount} duplicates.`,
         });
+        queryClient.invalidateQueries({ queryKey: ['sourcing-universe'] });
         setIsOpen(false);
         setFile(null);
         setHeaders([]);
