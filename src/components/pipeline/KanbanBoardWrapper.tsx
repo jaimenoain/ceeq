@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useOptimistic, useState } from 'react';
-import { DndContext, DragEndEvent } from '@dnd-kit/core';
+import { DndContext, DragEndEvent, useSensors, useSensor, PointerSensor } from '@dnd-kit/core';
 import { Deal, DealStage } from '@/features/deals/types';
 import { kanbanReducer } from '@/features/deals/lib/kanban-reducer';
 import { STAGES } from '@/features/deals/constants';
@@ -20,6 +20,14 @@ export function KanbanBoardWrapper({ initialDeals, onDealMove }: KanbanBoardWrap
   const [deals, dispatch] = useOptimistic(initialDeals, kanbanReducer);
   const { toast } = useToast();
   const [archivingDeal, setArchivingDeal] = useState<Deal | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    })
+  );
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -140,7 +148,7 @@ export function KanbanBoardWrapper({ initialDeals, onDealMove }: KanbanBoardWrap
 
   return (
     <>
-      <DndContext onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <div className="flex h-full gap-4 overflow-x-auto p-4">
           {STAGES.map((stage) => (
             <KanbanColumn key={stage} id={stage} title={stage.replace(/_/g, ' ')}>

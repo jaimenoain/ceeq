@@ -10,6 +10,14 @@ export interface Deal {
   stage: DealStage;
 }
 
+export interface DealHeaderDTO {
+  id: string;
+  companyName: string;
+  rootDomain: string;
+  stage: 'Lead' | 'Active' | 'LOI' | 'Closed';
+  privacyTier: 'Tier 1' | 'Tier 2';
+}
+
 export type OptimisticAction =
   | {
       action: 'MOVE_DEAL' | 'REVERT_MOVE';

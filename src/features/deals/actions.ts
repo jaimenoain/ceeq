@@ -6,6 +6,8 @@ import { createClient } from '../../shared/lib/supabase/server';
 import { normalizeDomain, hashDomain } from '../../shared/lib/crypto-domain';
 import { formatRelativeTime } from '../../shared/lib/utils';
 import { DealStage, KanbanDealDTO, PipelineDTO } from '../../shared/types/api';
+import { DealHeaderDTO } from './types';
+import { MOCK_SEARCHER_PIPELINE } from '../../shared/lib/mocks';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseClient = any;
@@ -188,6 +190,10 @@ export async function convertTargetToDealAction(targetId: string): Promise<Conve
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function getPipelineAction(workspaceId: string, mockClient?: any): Promise<PipelineDTO> {
+  if (process.env.NEXT_PUBLIC_USE_MOCKS === 'true') {
+    return MOCK_SEARCHER_PIPELINE;
+  }
+
   const supabase = mockClient || createClient();
 
   // 1. Authenticate & Verify Tenant Isolation
@@ -387,4 +393,72 @@ export async function archiveDealAction(payload: { dealId: string; lossReason?: 
 
   revalidatePath('/searcher/pipeline');
   return { success: true };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function getDealHeaderAction(dealId: string, mockClient?: any): Promise<DealHeaderDTO> {
+  if (process.env.NEXT_PUBLIC_USE_MOCKS === 'true') {
+    return {
+      id: dealId,
+      companyName: 'Mock Company Inc.',
+      rootDomain: 'mock-company.com',
+      stage: 'Active',
+      privacyTier: 'Tier 1',
+    };
+  }
+
+  const supabase = mockClient || createClient();
+
+  // 1. Authenticate
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) throw new Error('Unauthorized');
+
+  // 2. Get Workspace ID
+  const { data: userProfile, error: profileError } = await supabase
+    .from('User')
+    .select('workspaceId')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError || !userProfile || !userProfile.workspaceId) {
+    throw new Error('Workspace not found');
+  }
+  const workspaceId = userProfile.workspaceId;
+
+  // 3. Fetch Deal with Company
+  const { data: deal, error: dealError } = await supabase
+    .from('Deal')
+    .select(`
+      id,
+      stage,
+      visibilityTier,
+      company:Company(name, domain)
+    `)
+    .eq('id', dealId)
+    .eq('workspaceId', workspaceId)
+    .single();
+
+  if (dealError || !deal) {
+    throw new Error('Deal not found');
+  }
+
+  // 4. Map to DTO
+  const stageMapping: Record<DealStage, DealHeaderDTO['stage']> = {
+    INBOX: 'Lead',
+    NDA_SIGNED: 'Active',
+    CIM_REVIEW: 'Active',
+    LOI_ISSUED: 'LOI',
+    DUE_DILIGENCE: 'LOI',
+    CLOSED_WON: 'Closed'
+  };
+
+  const domain = normalizeDomain(deal.company?.domain || '');
+
+  return {
+    id: deal.id,
+    companyName: deal.company?.name || 'Unknown',
+    rootDomain: domain,
+    stage: stageMapping[deal.stage as DealStage] || 'Lead', // Fallback
+    privacyTier: deal.visibilityTier === 'TIER_1_PRIVATE' ? 'Tier 1' : 'Tier 2',
+  };
 }

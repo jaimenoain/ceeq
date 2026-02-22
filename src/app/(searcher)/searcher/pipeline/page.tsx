@@ -3,21 +3,28 @@ import { createClient } from '@/shared/lib/supabase/server';
 import { getPipelineAction } from '@/features/deals/actions';
 import { PipelineClient } from './pipeline-client';
 import { Deal, DealStage } from '@/features/deals/types';
+import { PipelineDTO } from '@/shared/types/api';
 
 export default async function SearcherPipelinePage() {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return <div>Unauthorized</div>;
+  let pipelineDTO: PipelineDTO;
 
-  const { data: userProfile } = await supabase
-    .from('User')
-    .select('workspaceId')
-    .eq('id', user.id)
-    .single();
+  if (process.env.NEXT_PUBLIC_USE_MOCKS === 'true') {
+    pipelineDTO = await getPipelineAction('mock-workspace-id');
+  } else {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return <div>Unauthorized</div>;
 
-  if (!userProfile) return <div>No workspace</div>;
+    const { data: userProfile } = await supabase
+      .from('User')
+      .select('workspaceId')
+      .eq('id', user.id)
+      .single();
 
-  const pipelineDTO = await getPipelineAction(userProfile.workspaceId);
+    if (!userProfile) return <div>No workspace</div>;
+
+    pipelineDTO = await getPipelineAction(userProfile.workspaceId);
+  }
 
   // Transform to UI Model (Deal)
   const initialDeals: Deal[] = [];
