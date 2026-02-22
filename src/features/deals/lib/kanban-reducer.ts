@@ -30,6 +30,20 @@ export function kanbanReducer(state: Deal[], action: OptimisticAction): Deal[] {
       });
     }
 
+    case 'ARCHIVE_DEAL': {
+      const { dealId } = action.payload;
+      return state.filter((deal) => deal.id !== dealId);
+    }
+
+    case 'REVERT_ARCHIVE': {
+      const { deal } = action.payload;
+      // Check if deal already exists to avoid duplicates
+      if (state.some((d) => d.id === deal.id)) {
+        return state;
+      }
+      return [...state, deal];
+    }
+
     default:
       return state;
   }

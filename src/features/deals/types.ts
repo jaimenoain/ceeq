@@ -10,11 +10,24 @@ export interface Deal {
   stage: DealStage;
 }
 
-export interface OptimisticAction {
-  action: 'MOVE_DEAL' | 'REVERT_MOVE';
-  payload: {
-    dealId: string;
-    targetStage?: DealStage;
-    previousStage?: DealStage;
-  };
-}
+export type OptimisticAction =
+  | {
+      action: 'MOVE_DEAL' | 'REVERT_MOVE';
+      payload: {
+        dealId: string;
+        targetStage?: DealStage;
+        previousStage?: DealStage;
+      };
+    }
+  | {
+      action: 'ARCHIVE_DEAL';
+      payload: {
+        dealId: string;
+      };
+    }
+  | {
+      action: 'REVERT_ARCHIVE';
+      payload: {
+        deal: Deal;
+      };
+    };
