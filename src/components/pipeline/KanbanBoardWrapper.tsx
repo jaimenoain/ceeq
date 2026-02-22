@@ -50,7 +50,7 @@ export function KanbanBoardWrapper({ initialDeals, onDealMove }: KanbanBoardWrap
     try {
       // Notify parent
       await onDealMove(dealId, newStage, oldStage);
-    } catch (error) {
+    } catch {
       // Rollback optimistic update
       dispatch({
         action: 'REVERT_MOVE',
