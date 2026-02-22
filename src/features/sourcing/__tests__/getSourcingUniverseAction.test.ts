@@ -53,6 +53,7 @@ describe('getSourcingUniverseAction', () => {
     const mockChain = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
+      neq: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: mockWorkspace, error: null }),
       or: vi.fn().mockReturnThis(),
       range: vi.fn().mockReturnThis(),

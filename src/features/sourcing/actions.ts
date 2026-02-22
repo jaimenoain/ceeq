@@ -76,6 +76,8 @@ export async function getSourcingUniverseAction(
 
     if (params.status) {
       query = query.eq('status', params.status);
+    } else {
+      query = query.neq('status', 'CONVERTED');
     }
 
     if (params.industry) {
