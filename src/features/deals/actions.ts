@@ -462,3 +462,140 @@ export async function getDealHeaderAction(dealId: string, mockClient?: any): Pro
     privacyTier: deal.visibilityTier === 'TIER_1_PRIVATE' ? 'Tier 1' : 'Tier 2',
   };
 }
+
+// ----------------------------------------------------------------------------
+// METRICS ACTIONS
+// ----------------------------------------------------------------------------
+
+const UpdateCompanyFirmographicsSchema = z.object({
+  companyId: z.string(),
+  location: z.string().nullable().optional(),
+  employees: z.number().nullable().optional(),
+  industry: z.string().nullable().optional(),
+});
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function updateCompanyFirmographicsAction(payload: {
+  companyId: string;
+  location?: string | null;
+  employees?: number | null;
+  industry?: string | null;
+}, mockClient?: any): Promise<{ success: boolean; error?: string }> {
+  const supabase = mockClient || createClient();
+  const parseResult = UpdateCompanyFirmographicsSchema.safeParse(payload);
+
+  if (!parseResult.success) {
+      return { success: false, error: 'Invalid input' };
+  }
+
+  const { companyId, location, employees, industry } = parseResult.data;
+
+  // 1. Authenticate
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return { success: false, error: 'Unauthorized' };
+
+  // 2. Get Workspace ID
+  const { data: userProfile, error: profileError } = await supabase
+    .from('User')
+    .select('workspaceId')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError || !userProfile || !userProfile.workspaceId) {
+    return { success: false, error: 'Workspace not found' };
+  }
+  const workspaceId = userProfile.workspaceId;
+
+  // 3. Update Company
+  // Security: Ensure company belongs to the workspace
+  const { error } = await supabase
+    .from('Company')
+    .update({
+        ...(location !== undefined && { location }),
+        ...(employees !== undefined && { employees }),
+        ...(industry !== undefined && { industry }),
+    })
+    .eq('id', companyId)
+    .eq('workspaceId', workspaceId); // RLS Check
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath('/searcher/pipeline');
+  return { success: true };
+}
+
+const UpdateDealFinancialsSchema = z.object({
+  dealId: z.string(),
+  revenueLtm: z.number().nullable().optional(),
+  ebitdaLtm: z.number().nullable().optional(),
+  marginPercent: z.number().nullable().optional(),
+  askingPrice: z.number().nullable().optional(),
+});
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function updateDealFinancialsAction(payload: {
+  dealId: string;
+  revenueLtm?: number | null;
+  ebitdaLtm?: number | null;
+  marginPercent?: number | null;
+  askingPrice?: number | null;
+}, mockClient?: any): Promise<{ success: boolean; error?: string }> {
+  const supabase = mockClient || createClient();
+  const parseResult = UpdateDealFinancialsSchema.safeParse(payload);
+
+  if (!parseResult.success) {
+      return { success: false, error: 'Invalid input' };
+  }
+
+  const { dealId, revenueLtm, ebitdaLtm, marginPercent, askingPrice } = parseResult.data;
+
+  // 1. Authenticate
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return { success: false, error: 'Unauthorized' };
+
+  // 2. Get Workspace ID
+  const { data: userProfile, error: profileError } = await supabase
+    .from('User')
+    .select('workspaceId')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError || !userProfile || !userProfile.workspaceId) {
+    return { success: false, error: 'Workspace not found' };
+  }
+  const workspaceId = userProfile.workspaceId;
+
+  // 3. Update Deal
+  // Security: Ensure deal belongs to the workspace
+
+  const { data: dealCheck, error: checkError } = await supabase
+      .from('Deal')
+      .select('id')
+      .eq('id', dealId)
+      .eq('workspaceId', workspaceId)
+      .single();
+
+  if (checkError || !dealCheck) {
+      return { success: false, error: 'Deal not found or access denied' };
+  }
+
+  const { error } = await supabase
+    .from('Deal')
+    .update({
+        ...(revenueLtm !== undefined && { revenueLtm }),
+        ...(ebitdaLtm !== undefined && { ebitdaLtm }),
+        ...(marginPercent !== undefined && { marginPercent }),
+        ...(askingPrice !== undefined && { askingPrice }),
+    })
+    .eq('id', dealId)
+    .eq('workspaceId', workspaceId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath('/searcher/pipeline');
+  return { success: true };
+}
