@@ -1,8 +1,21 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest';
 import { getSourcingUniverseAction } from '../actions';
+import { SupabaseClient } from '@supabase/supabase-js';
+
+// Define the shape of the mock chain
+interface MockChain {
+  select: Mock;
+  eq: Mock;
+  neq: Mock;
+  or: Mock;
+  range: Mock;
+  order: Mock;
+  single: Mock;
+  then: (resolve: (value: { data: unknown[]; count: number; error: null }) => void) => void;
+}
 
 // Mock dependencies
-const mockChain: any = {
+const mockChain: MockChain = {
   select: vi.fn().mockReturnThis(),
   eq: vi.fn().mockReturnThis(),
   neq: vi.fn().mockReturnThis(),
@@ -10,7 +23,7 @@ const mockChain: any = {
   range: vi.fn().mockReturnThis(),
   order: vi.fn().mockReturnThis(),
   single: vi.fn(),
-  then: (resolve: any) => resolve({ data: [], count: 0, error: null }),
+  then: (resolve) => resolve({ data: [], count: 0, error: null }),
 };
 
 const mockSupabase = {
@@ -46,7 +59,7 @@ describe('getSourcingUniverseAction Exclusion Logic', () => {
 
   it('should exclude CONVERTED status when no status filter is provided', async () => {
     // Call action without status
-    await getSourcingUniverseAction({ page: 1 }, mockSupabase as any);
+    await getSourcingUniverseAction({ page: 1 }, mockSupabase as unknown as SupabaseClient);
 
     // Expect 'neq' to be called for 'status'
     expect(mockChain.neq).toHaveBeenCalledWith('status', 'CONVERTED');
@@ -54,7 +67,7 @@ describe('getSourcingUniverseAction Exclusion Logic', () => {
 
   it('should NOT exclude CONVERTED status when explicit status filter is provided', async () => {
     // Call action WITH status
-    await getSourcingUniverseAction({ page: 1, status: 'CONVERTED' as any }, mockSupabase as any);
+    await getSourcingUniverseAction({ page: 1, status: 'CONVERTED' }, mockSupabase as unknown as SupabaseClient);
 
     // Expect 'eq' to be called, and 'neq' NOT to be called
     expect(mockChain.eq).toHaveBeenCalledWith('status', 'CONVERTED');
