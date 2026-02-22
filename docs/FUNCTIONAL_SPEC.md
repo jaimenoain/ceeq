@@ -132,7 +132,7 @@ This section defines the core database objects, their key attributes, and entity
    * Inputs: Company Name, Root Domain, Industry, Description.  
    * Validation: Domain MUST be a valid FQDN (Fully Qualified Domain Name).  
 5. **Post-conditions:** Database creates Company and Deal. visibility\_tier defaults to Tier\_1\_Private.  
-6. **Edge Cases:** If a domain hash collision occurs, the system MUST silently log the collision for internal analytics but MUST NOT alert the Searcher, ensuring strict adherence to NDA and privacy barriers between competing Searchers.
+6. **Edge Cases:** If a domain hash collision occurs, the system MUST alert the Searcher via a UI notification (Toast) if the target is already protected under NDA in another pipeline.
 
 ### **4.4. AI Financial OCR & Human-in-the-Loop Validation**
 

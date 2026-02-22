@@ -128,6 +128,7 @@ model SourcingTarget {
   fitScore           Int            @default(0)  
   scoreMetadata      Json?          // Stores custom weights and variables  
   status             SourcingStatus @default(UNTOUCHED)  
+  createdAt          DateTime       @default(now())
     
   workspace          Workspace      @relation(fields: \[workspaceId\], references: \[id\])
 
@@ -141,7 +142,7 @@ model Company {
   workspaceId        String    @db.Uuid  
   name               String  
   domain             String  
-  /// Globally peppered SHA-256 hash for cross-workspace collision detection  
+  /// SHA-256 hash of normalized domain (no salt) for cross-workspace collision detection
   hashedDomain       String    @db.VarChar(64)   
   industry           String?  
     

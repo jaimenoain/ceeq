@@ -430,6 +430,8 @@ AppLayout (flex, h-screen, bg-slate-50, overflow-hidden)
 
             │         │         ├─ TableHead \-\> Text ("Status")
 
+            │         │         ├─ TableHead \-\> Text ("Added")
+
             │         │         └─ TableHead \-\> Text ("Actions")
 
             │         └─ TableBody
@@ -447,6 +449,8 @@ AppLayout (flex, h-screen, bg-slate-50, overflow-hidden)
             │                   │    └─ Badge \<- Mapped to \-\> SourcingTarget.status
 
             │                   │         (Variant Logic: UNTOUCHED \= default, IN\_SEQUENCE \= secondary, REPLIED \= success)
+
+            │                   ├─ TableCell (text-slate-500, text-sm) \<- Mapped to \-\> SourcingTarget.createdAt (Relative time format)
 
             │                   └─ TableCell
 
