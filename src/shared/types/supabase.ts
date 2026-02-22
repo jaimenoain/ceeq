@@ -215,6 +215,12 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
+      check_global_collision: {
+        Args: {
+          hashed_domain: string
+        }
+        Returns: Json
+      }
       get_auth_workspace_id: {
         Args: Record<PropertyKey, never>
         Returns: string
