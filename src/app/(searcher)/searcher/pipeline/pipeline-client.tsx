@@ -10,7 +10,7 @@ interface PipelineClientProps {
 }
 
 export function PipelineClient({ initialDeals }: PipelineClientProps) {
-  const handleDealMove = async (dealId: string, newStage: DealStage, oldStage: DealStage) => {
+  const handleDealMove = async (dealId: string, newStage: DealStage) => {
     const result = await updateDealStageAction({ dealId, newStage });
     if (!result.success) {
       throw new Error(result.error || "Failed to update deal stage");
