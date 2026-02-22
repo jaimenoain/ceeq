@@ -8,7 +8,7 @@ import { formatRelativeTime } from '../../shared/lib/utils';
 import { DealStage, KanbanDealDTO, PipelineDTO } from '../../shared/types/api';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SupabaseClient = any; // Using any for mock compatibility, or import proper type
+type SupabaseClient = any;
 
 export interface ConversionResult {
   success: boolean;
@@ -29,13 +29,11 @@ export async function convertTargetToDeal(
   supabase: SupabaseClient,
   targetId: string
 ): Promise<ConversionResult> {
-  // 1. Get User Session
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) {
     return { success: false, error: 'Unauthorized' };
   }
 
-  // 2. Get Workspace ID
   const { data: userProfile, error: profileError } = await supabase
     .from('User')
     .select('workspaceId')
@@ -48,10 +46,9 @@ export async function convertTargetToDeal(
 
   const workspaceId = userProfile.workspaceId;
 
-  // 3. Fetch Target
   const { data: target, error: targetError } = await supabase
     .from('SourcingTarget')
-    .select('*') // We select * but will only use strictly allowed fields
+    .select('*')
     .eq('id', targetId)
     .single();
 
@@ -59,12 +56,9 @@ export async function convertTargetToDeal(
     return { success: false, error: 'Target not found' };
   }
 
-  // 4. Compute Hash
   const domain = normalizeDomain(target.domain);
   const hashedDomain = hashDomain(domain);
 
-  // 5. Check Local Collision (Idempotency)
-  // Check if we already have this company in our workspace
   const { data: localCompany, error: localCompanyError } = await supabase
     .from('Company')
     .select('id')
@@ -78,19 +72,15 @@ export async function convertTargetToDeal(
 
   let companyId = localCompany?.id;
 
-  // 6. Global Collision Check (RPC)
   if (!companyId) {
-    // Check if another workspace has this domain at an advanced stage
     const { data: globalCollision, error: rpcError } = await supabase.rpc('check_global_collision', {
       hashed_domain: hashedDomain,
     });
 
-    // Fail Closed: If RPC fails, we cannot guarantee safety, so we block.
     if (rpcError) {
         console.error('RPC check_global_collision failed:', rpcError);
         return { success: false, error: 'System error during collision check. Please try again later.' };
     } else if (globalCollision) {
-         // Expecting object { collision: boolean, stage: string }
          const stage = globalCollision.stage;
          const advancedStages = ['NDA_SIGNED', 'CIM_REVIEW', 'LOI_ISSUED', 'DUE_DILIGENCE', 'CLOSED_WON'];
 
@@ -103,10 +93,7 @@ export async function convertTargetToDeal(
     }
   }
 
-  // 7. Create Company if needed
   if (!companyId) {
-      // Strictly adhering to Data Contracts: only domain, hashedDomain, workspaceId.
-      // Ignoring name/industry as they are not in the strict contract provided in the task.
       const { data: newCompany, error: createCompanyError } = await supabase
         .from('Company')
         .insert({
@@ -114,7 +101,6 @@ export async function convertTargetToDeal(
             domain: target.domain,
             hashedDomain,
             name: target.name
-            // industry removed to comply with strict Data Contracts
         })
         .select('id')
         .single();
@@ -125,8 +111,6 @@ export async function convertTargetToDeal(
       companyId = newCompany.id;
   }
 
-  // 8. Create Deal
-  // Check if deal exists for this company in this workspace
   const { data: existingDeal, error: existingDealError } = await supabase
       .from('Deal')
       .select('id')
@@ -159,7 +143,6 @@ export async function convertTargetToDeal(
       dealId = newDeal.id;
   }
 
-  // 9. Update Target Status
   if (target.status !== 'CONVERTED') {
       const { error: updateError } = await supabase
           .from('SourcingTarget')
@@ -176,7 +159,6 @@ export async function convertTargetToDeal(
 
 export async function convertTargetToDealAction(targetId: string): Promise<ConversionResult> {
   if (process.env.NEXT_PUBLIC_USE_MOCKS === 'true') {
-    // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 1000));
     const result = { success: true, dealId: 'mock-deal-id', companyId: 'mock-company-id' };
     revalidatePath('/searcher/universe');
@@ -200,31 +182,18 @@ export async function convertTargetToDealAction(targetId: string): Promise<Conve
   return result;
 }
 
+// ----------------------------------------------------------------------------
+// KANBAN PIPELINE ACTIONS
+// ----------------------------------------------------------------------------
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function fetchPipeline(mockClient?: any): Promise<PipelineDTO> {
+export async function getPipelineAction(workspaceId: string, mockClient?: any): Promise<PipelineDTO> {
   const supabase = mockClient || createClient();
 
-  if (process.env.NEXT_PUBLIC_USE_MOCKS === 'true') {
-     // Mock data
-     return {
-        columns: {
-           INBOX: [],
-           NDA_SIGNED: [],
-           CIM_REVIEW: [],
-           LOI_ISSUED: [],
-           DUE_DILIGENCE: [],
-           CLOSED_WON: [],
-        }
-     };
-  }
-
-  // 1. Get User Session
+  // 1. Authenticate & Verify Tenant Isolation
   const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    throw new Error('Unauthorized');
-  }
+  if (authError || !user) throw new Error('Unauthorized');
 
-  // 2. Get Workspace ID
   const { data: userProfile, error: profileError } = await supabase
     .from('User')
     .select('workspaceId')
@@ -235,9 +204,11 @@ export async function fetchPipeline(mockClient?: any): Promise<PipelineDTO> {
     throw new Error('Workspace not found');
   }
 
-  const workspaceId = userProfile.workspaceId;
+  if (userProfile.workspaceId !== workspaceId) {
+    throw new Error('Unauthorized access to workspace');
+  }
 
-  // 3. Fetch Deals
+  // 2. Fetch Active Deals
   const { data: deals, error: dealsError } = await supabase
     .from('Deal')
     .select(`
@@ -256,18 +227,18 @@ export async function fetchPipeline(mockClient?: any): Promise<PipelineDTO> {
     throw new Error('Failed to fetch pipeline deals');
   }
 
-  // 4. Map to DTO
+  // 3. Map to DTO
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const kanbanDeals: (KanbanDealDTO & { stage: DealStage })[] = deals.map((deal: any) => ({
     id: deal.id,
     companyName: deal.company?.name || 'Unknown',
     visibilityTier: deal.visibilityTier,
     updatedAtRelative: formatRelativeTime(deal.createdAt),
-    assignedAnalystInitials: [], // TODO: Implement assignment logic when schema supports it
+    assignedAnalystInitials: [], // Placeholder for future feature
     stage: deal.stage,
   }));
 
-  // 5. Group by Stage
+  // 4. Group by Stage
   const columns: Record<DealStage, KanbanDealDTO[]> = {
     INBOX: [],
     NDA_SIGNED: [],
@@ -294,28 +265,23 @@ export async function fetchPipeline(mockClient?: any): Promise<PipelineDTO> {
 
 const UpdateDealStageSchema = z.object({
   dealId: z.string(),
-  stage: z.enum(['INBOX', 'NDA_SIGNED', 'CIM_REVIEW', 'LOI_ISSUED', 'DUE_DILIGENCE', 'CLOSED_WON']),
+  newStage: z.enum(['INBOX', 'NDA_SIGNED', 'CIM_REVIEW', 'LOI_ISSUED', 'DUE_DILIGENCE', 'CLOSED_WON']),
 });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function updateDealStage(dealId: string, stage: DealStage, mockClient?: any): Promise<{ success: boolean; error?: string }> {
+export async function updateDealStageAction(payload: { dealId: string; newStage: DealStage }, mockClient?: any): Promise<{ success: boolean; error?: string }> {
   const supabase = mockClient || createClient();
+  const parseResult = UpdateDealStageSchema.safeParse(payload);
 
-  if (process.env.NEXT_PUBLIC_USE_MOCKS === 'true') {
-     revalidatePath('/searcher/pipeline');
-     return { success: true };
-  }
-
-  const parseResult = UpdateDealStageSchema.safeParse({ dealId, stage });
   if (!parseResult.success) {
      return { success: false, error: 'Invalid input' };
   }
 
-  // 1. Get User Session
+  const { dealId, newStage } = parseResult.data;
+
+  // 1. Authenticate
   const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return { success: false, error: 'Unauthorized' };
-  }
+  if (authError || !user) return { success: false, error: 'Unauthorized' };
 
   // 2. Get Workspace ID
   const { data: userProfile, error: profileError } = await supabase
@@ -332,7 +298,7 @@ export async function updateDealStage(dealId: string, stage: DealStage, mockClie
   // 3. Update Deal
   const { error } = await supabase
     .from('Deal')
-    .update({ stage })
+    .update({ stage: newStage })
     .eq('id', dealId)
     .eq('workspaceId', workspaceId);
 
@@ -345,20 +311,25 @@ export async function updateDealStage(dealId: string, stage: DealStage, mockClie
   return { success: true };
 }
 
+const ArchiveDealSchema = z.object({
+  dealId: z.string(),
+  lossReason: z.string().optional(),
+});
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function archiveDeal(dealId: string, mockClient?: any): Promise<{ success: boolean; error?: string }> {
+export async function archiveDealAction(payload: { dealId: string; lossReason?: string }, mockClient?: any): Promise<{ success: boolean; error?: string }> {
   const supabase = mockClient || createClient();
+  const parseResult = ArchiveDealSchema.safeParse(payload);
 
-  if (process.env.NEXT_PUBLIC_USE_MOCKS === 'true') {
-     revalidatePath('/searcher/pipeline');
-     return { success: true };
+  if (!parseResult.success) {
+      return { success: false, error: 'Invalid input' };
   }
 
-  // 1. Get User Session
+  const { dealId, lossReason } = parseResult.data;
+
+  // 1. Authenticate
   const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return { success: false, error: 'Unauthorized' };
-  }
+  if (authError || !user) return { success: false, error: 'Unauthorized' };
 
   // 2. Get Workspace ID
   const { data: userProfile, error: profileError } = await supabase
@@ -372,60 +343,41 @@ export async function archiveDeal(dealId: string, mockClient?: any): Promise<{ s
   }
   const workspaceId = userProfile.workspaceId;
 
-  const { error } = await supabase
+  // 3. Check Current Stage
+  const { data: deal, error: dealError } = await supabase
     .from('Deal')
-    .update({ status: 'ARCHIVED' })
+    .select('stage')
     .eq('id', dealId)
-    .eq('workspaceId', workspaceId);
-
-  if (error) {
-    console.error('Error archiving deal:', error);
-    return { success: false, error: error.message };
-  }
-
-  revalidatePath('/searcher/pipeline');
-  return { success: true };
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function loseDeal(dealId: string, lossReason: string, mockClient?: any): Promise<{ success: boolean; error?: string }> {
-  const supabase = mockClient || createClient();
-
-  if (process.env.NEXT_PUBLIC_USE_MOCKS === 'true') {
-     revalidatePath('/searcher/pipeline');
-     return { success: true };
-  }
-
-  if (!lossReason) {
-      return { success: false, error: 'Loss reason is required' };
-  }
-
-  // 1. Get User Session
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return { success: false, error: 'Unauthorized' };
-  }
-
-  // 2. Get Workspace ID
-  const { data: userProfile, error: profileError } = await supabase
-    .from('User')
-    .select('workspaceId')
-    .eq('id', user.id)
+    .eq('workspaceId', workspaceId)
     .single();
 
-  if (profileError || !userProfile || !userProfile.workspaceId) {
-    return { success: false, error: 'Workspace not found' };
+  if (dealError || !deal) {
+      return { success: false, error: 'Deal not found' };
   }
-  const workspaceId = userProfile.workspaceId;
+
+  const stageOrder = ['INBOX', 'NDA_SIGNED', 'CIM_REVIEW', 'LOI_ISSUED', 'DUE_DILIGENCE', 'CLOSED_WON'];
+  const currentStageIndex = stageOrder.indexOf(deal.stage);
+  const cimReviewIndex = stageOrder.indexOf('CIM_REVIEW');
+
+  // Validate lossReason for late stage deals
+  if (currentStageIndex >= cimReviewIndex && !lossReason) {
+      return { success: false, error: 'Loss reason is required for deals in CIM Review or later' };
+  }
+
+  // 4. Update Status
+  const status = lossReason ? 'LOST' : 'ARCHIVED';
 
   const { error } = await supabase
     .from('Deal')
-    .update({ status: 'LOST', lossReason })
+    .update({
+        status,
+        lossReason: lossReason || null
+    })
     .eq('id', dealId)
     .eq('workspaceId', workspaceId);
 
   if (error) {
-    console.error('Error marking deal as lost:', error);
+    console.error(`Error marking deal as ${status}:`, error);
     return { success: false, error: error.message };
   }
 
