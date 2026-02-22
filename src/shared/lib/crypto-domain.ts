@@ -1,5 +1,3 @@
-'use server';
-
 import crypto from 'node:crypto';
 import { normalizeDomain } from './domain-utils';
 

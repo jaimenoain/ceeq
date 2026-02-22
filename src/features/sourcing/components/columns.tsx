@@ -15,6 +15,8 @@ import {
 } from '@/shared/components/ui/dropdown-menu';
 import { Badge } from '@/shared/components/ui/badge';
 import { SourcingTargetDTO } from '../types';
+import { convertTargetToDealAction } from '@/features/deals/actions';
+import { toast } from '@/shared/hooks/use-toast';
 
 export const columns: ColumnDef<SourcingTargetDTO>[] = [
   {
@@ -87,6 +89,23 @@ export const columns: ColumnDef<SourcingTargetDTO>[] = [
     cell: ({ row }) => {
       const target = row.original;
 
+      const handleConvertToDeal = async () => {
+        const result = await convertTargetToDealAction(target.id);
+        if (result.success) {
+          toast({
+            title: 'Success',
+            description: 'Target converted to deal successfully.',
+            variant: 'default',
+          });
+        } else {
+          toast({
+            title: 'Error',
+            description: result.error || 'Failed to convert target.',
+            variant: 'destructive',
+          });
+        }
+      };
+
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -105,6 +124,9 @@ export const columns: ColumnDef<SourcingTargetDTO>[] = [
             <DropdownMenuSeparator />
             <DropdownMenuItem>View details</DropdownMenuItem>
             <DropdownMenuItem>Add to sequence</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleConvertToDeal}>
+              Convert to Deal
+            </DropdownMenuItem>
             <DropdownMenuItem className="text-destructive">Archive</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
