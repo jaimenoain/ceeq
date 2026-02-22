@@ -172,6 +172,15 @@ export async function convertTargetToDeal(
 }
 
 export async function convertTargetToDealAction(targetId: string): Promise<ConversionResult> {
+  if (process.env.NEXT_PUBLIC_USE_MOCKS === 'true') {
+    // Simulate network delay
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const result = { success: true, dealId: 'mock-deal-id', companyId: 'mock-company-id' };
+    revalidatePath('/searcher/universe');
+    revalidatePath('/searcher/pipeline');
+    return result;
+  }
+
   const parseResult = ConvertTargetSchema.safeParse({ targetId });
   if (!parseResult.success) {
       return { success: false, error: "Invalid target ID" };
