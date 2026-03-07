@@ -45,6 +45,14 @@ model users {
 
 * **Role Limitations:** Only users with role \== 'searcher' can update tenants or access account settings.
 
+### **Component 2b: Auth Implementation (Supabase)**
+
+The application delegates **authentication** (sign-in, sign-up, password reset, session management) to **Supabase Auth**. Login and sign-up use email and password; there is no mock or dummy auth. The database schema above (e.g. `users`, `password_hash`) describes the application’s own tenant/user model for business data; identity and session are handled by Supabase until synced or mapped into that model.
+
+* **Environment variables (required):** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Optional: `NEXT_PUBLIC_APP_URL` (base URL for password-reset redirect). No Supabase or Resend secrets are hardcoded in source.
+* **Resend:** Transactional emails (e.g. signup confirmation, password reset) are sent by Supabase. Resend is used as the SMTP provider configured in the **Supabase Dashboard** (Authentication → Email → SMTP). The application does not use a Resend API key or any Resend-specific environment variables.
+* **Route protections:** Unauthenticated users visiting the root path (`/`) or any dashboard route are redirected to `/login`. The dashboard layout calls `supabase.auth.getUser()` and redirects to `/login` when there is no user. See `docs/ARCHITECTURE.md` for the exact route layout and protection behavior.
+
 ### **Component 3: API Route Registry & DTOs**
 
 * GET /api/auth/me \- Get current user profile.
