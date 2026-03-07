@@ -1,0 +1,30 @@
+{
+  "$schema": "https://repomix.com/schemas/latest/schema.json",
+  "topFiles": [
+    ".ai-status.md",
+    "docs/**/*"
+  ],
+  "include": [
+    ".ai-status.md",
+    "docs/**/*",
+    "**/*"
+  ],
+  "ignore": {
+    "useGitignore": true,
+    "useDefaultPatterns": true,
+    "customPatterns": [
+      "node_modules/**",
+      ".next/**",
+      "dist/**",
+      "package-lock.json",
+      "yarn.lock",
+      "pnpm-lock.yaml"
+    ]
+  },
+  "output": {
+    "filePath": "repomix-output.xml",
+    "style": "xml",
+    "fileSummary": true,
+    "directoryStructure": true
+  }
+}
