@@ -25,12 +25,23 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
+  const tenantId = user.app_metadata?.tenant_id as string | undefined;
+  let tenantName: string = "ceeq";
+  if (tenantId) {
+    const { data: tenant } = await supabase
+      .from("tenants")
+      .select("name")
+      .eq("id", tenantId)
+      .single();
+    if (tenant?.name) tenantName = tenant.name;
+  }
+
   return (
     <div className="min-h-screen bg-background flex">
       <aside className="w-56 shrink-0 border-r border-border flex flex-col bg-card">
         <div className="flex h-14 items-center border-b border-border px-4">
           <Link href="/repository" className="text-base font-semibold text-foreground">
-            ceeq
+            {tenantName}
           </Link>
         </div>
         <nav className="flex-1 flex flex-col gap-0.5 p-3">
