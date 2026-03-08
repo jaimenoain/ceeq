@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useTransition, useOptimistic, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -126,7 +127,15 @@ function ProfileTabPanel({
           </form>
         </TabsContent>
         <TabsContent value="team" className="mt-4">
-          <p className="text-sm text-muted-foreground">Team management (placeholder).</p>
+          <p className="text-sm text-muted-foreground">
+            Invite members, manage roles, and handle access requests.{" "}
+            <Link
+              href="/settings/members"
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              Go to member management →
+            </Link>
+          </p>
         </TabsContent>
         <TabsContent value="fields" className="mt-4">
           <p className="text-sm text-muted-foreground">Custom fields (placeholder).</p>
