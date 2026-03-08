@@ -6,6 +6,7 @@ const PUBLIC_PATHS = [
   "/",
   "/login",
   "/signup",
+  "/signup/confirm",
   "/onboarding",
   "/auth/callback",
   "/favicon.ico",
